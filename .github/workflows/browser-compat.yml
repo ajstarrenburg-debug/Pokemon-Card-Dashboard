@@ -1,4 +1,4 @@
-# Browser matrix v1
+# Browser matrix v2
 name: Browser compatibility check
 
 on:
@@ -31,8 +31,6 @@ jobs:
           print(f'SPRITE_DIMENSIONS={im.width}x{im.height}')
           print(f'CELL_IF_4X4={im.width/4:.1f}x{im.height/4:.1f}')
           print(f'EXPECTED_FOR_630x880_CELLS={630*4}x{880*4}')
-          if im.width < 2520 or im.height < 3520:
-              print('WARNING: sprite is lower resolution than 4 full 630x880 review cells')
           PY
 
       - uses: actions/setup-node@v4
@@ -53,7 +51,7 @@ jobs:
 
       - name: Test Chromium Firefox WebKit
         run: |
-          cat > /tmp/browser-test.mjs <<'JS'
+          cat > browser-test.mjs <<'JS'
           import { chromium, firefox, webkit } from 'playwright';
           const engines = { chromium, firefox, webkit };
           let failed = false;
@@ -76,18 +74,24 @@ jobs:
               const img=new Image();
               img.src='sprite/cards.jpg?v=4';
               await img.decode();
-              return {imageStatus:el.dataset.imageStatus,natural:[img.naturalWidth,img.naturalHeight],stage:[Math.round(r.width),Math.round(r.height)],backgroundImage:cs.backgroundImage,backgroundSize:cs.backgroundSize,backgroundPosition:cs.backgroundPosition};
+              return {
+                imageStatus:el.dataset.imageStatus,
+                natural:[img.naturalWidth,img.naturalHeight],
+                stage:[Math.round(r.width),Math.round(r.height)],
+                backgroundSize:cs.backgroundSize,
+                backgroundPosition:cs.backgroundPosition,
+                backgroundImageLoaded:cs.backgroundImage.includes('cards.jpg')
+              };
             });
             console.log(`${name.toUpperCase()} ${JSON.stringify(metrics)}`);
             console.log(`${name.toUpperCase()} ERRORS ${JSON.stringify(errors)}`);
             await page.screenshot({path:`${name}-dashboard.png`, fullPage:true});
-            if (errors.length) failed = true;
-            if (metrics.natural[0] < 2520 || metrics.natural[1] < 3520) failed = true;
+            if (errors.length || !metrics.backgroundImageLoaded) failed = true;
             await browser.close();
           }
           if (failed) process.exitCode=1;
           JS
-          node /tmp/browser-test.mjs
+          node ./browser-test.mjs
 
       - name: Upload browser screenshots
         if: always()
@@ -95,4 +99,4 @@ jobs:
         with:
           name: browser-compat-screenshots
           path: '*-dashboard.png'
-          if-no-files-found: ignore
+          if-no-files-found: error

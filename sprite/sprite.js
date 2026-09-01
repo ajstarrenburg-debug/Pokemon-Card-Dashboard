@@ -1,26 +1,25 @@
 (function(){
-  function paint(){
-    var el=document.getElementById('img');
-    if(!el||!window.SPRITE_B64) return false;
-    var u='url("data:image/jpeg;base64,'+window.SPRITE_B64+'")';
-    el.style.backgroundImage=u;
-    document.documentElement.style.setProperty('--sprite',u);
-    return true;
-  }
-  function loadData(){
-    if(window.SPRITE_B64){ paint(); return; }
-    var s=document.createElement('script');
-    s.src='sprite/data.js?v=2';
-    s.async=false;
-    s.onload=function(){
-      if(!paint()) console.error('Sprite data loaded, but card image could not be painted.');
-    };
-    s.onerror=function(){ console.error('Could not load sprite/data.js'); };
-    document.head.appendChild(s);
-  }
-  if(document.readyState==='loading'){
-    document.addEventListener('DOMContentLoaded',loadData,{once:true});
-  }else{
-    loadData();
-  }
+  var el=document.getElementById('img');
+  if(!el) return;
+
+  var src='sprite/cards.jpg?v=4';
+  var probe=new Image();
+
+  probe.onload=function(){
+    el.style.backgroundImage='url("'+src+'")';
+    el.dataset.imageStatus='loaded';
+  };
+
+  probe.onerror=function(){
+    el.dataset.imageStatus='error';
+    el.style.display='grid';
+    el.style.placeItems='center';
+    el.style.padding='24px';
+    el.style.color='#ffb84d';
+    el.style.fontWeight='700';
+    el.style.textAlign='center';
+    el.textContent='Kaartbeeld kon niet laden. Herlaad de pagina.';
+  };
+
+  probe.src=src;
 })();

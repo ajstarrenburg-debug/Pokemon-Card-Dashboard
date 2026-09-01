@@ -5,9 +5,9 @@
 <meta name="viewport" content="width=device-width,initial-scale=1" />
 <title>Pokemon Card Dashboard - AI Learning</title>
 <style>
-:root{font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;--bg:#080d14;--side:#0d141f;--panel:#111a27;--panel2:#151f2e;--line:#24334a;--muted:#8fa3bc;--text:#eef5ff;--cyan:#36dff5;--green:#48dc8b;--yellow:#f3c85f}
-*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);height:100vh;overflow:hidden}.app{display:grid;grid-template-columns:240px 1fr;height:100vh}.sidebar{background:linear-gradient(180deg,#0d151f,#0a1018);border-right:1px solid var(--line);padding:18px 13px;display:flex;flex-direction:column}.brand{font-size:15px;font-weight:850;padding:7px 9px 20px}.brand small{display:block;color:var(--muted);font-size:10px;margin-top:4px;font-weight:650}.nav{display:grid;gap:5px}.nav button{border:0;background:transparent;color:#9fb0c7;padding:10px 11px;text-align:left;border-radius:9px;font-weight:700;cursor:pointer}.nav button:hover{background:#141f2e;color:#fff}.nav button.active{background:#17263a;color:#fff;border:1px solid #2a4666}.sub{padding-left:15px;margin:3px 0 7px;border-left:1px solid #26364c}.sub button.active{color:var(--cyan);background:#102431}.foot{margin-top:auto;color:#7589a5;font-size:10px;padding:10px}.main{display:grid;grid-template-rows:62px 1fr;min-width:0}.top{border-bottom:1px solid var(--line);display:flex;align-items:center;gap:12px;padding:0 18px;background:#0c131d}.title{font-weight:850}.title small{display:block;color:var(--muted);font-size:11px;margin-top:2px}.pill{margin-left:auto;border:1px solid #2e435d;background:#121e2c;color:#a8bed8;border-radius:999px;padding:7px 10px;font-size:11px}.content{display:grid;grid-template-columns:minmax(0,1fr) 285px;min-height:0}.reviewFrame{width:100%;height:100%;border:0;background:#0d1015}.queue{border-left:1px solid var(--line);background:#0c131d;overflow:auto;padding:14px}.queue h3{font-size:12px;margin:3px 0 5px}.queue p{color:var(--muted);font-size:11px;line-height:1.45;margin:0 0 12px}.card{padding:9px 10px;border:1px solid #23334a;background:#111b29;border-radius:10px;margin:7px 0}.card b{font-size:11px;display:block}.card span{font-size:10px;color:#8ea2bb}.card.reference{border-color:#574528;background:#211b11}.legend{margin-top:13px;border-top:1px solid #23334a;padding-top:12px;font-size:10px;color:#8ea2bb;line-height:1.5}.mobileNote{display:none}
-@media(max-width:900px){.app{grid-template-columns:1fr}.sidebar,.queue{display:none}.content{grid-template-columns:1fr}.top{height:56px}.main{grid-template-rows:56px 1fr}.mobileNote{display:block;font-size:10px;color:var(--muted);margin-left:auto}.pill{display:none}}
+:root{font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;--bg:#080d14;--side:#0d141f;--line:#24334a;--muted:#8fa3bc;--text:#eef5ff;--cyan:#36dff5}
+*{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:var(--bg);color:var(--text);min-height:100vh;overflow-y:auto;overflow-x:hidden}.app{display:grid;grid-template-columns:240px minmax(0,1fr);min-height:100vh}.sidebar{position:sticky;top:0;height:100vh;overflow:auto;background:linear-gradient(180deg,#0d151f,#0a1018);border-right:1px solid var(--line);padding:18px 13px;display:flex;flex-direction:column}.brand{font-size:15px;font-weight:850;padding:7px 9px 20px}.brand small{display:block;color:var(--muted);font-size:10px;margin-top:4px;font-weight:650}.nav{display:grid;gap:5px}.nav button{border:0;background:transparent;color:#9fb0c7;padding:10px 11px;text-align:left;border-radius:9px;font-weight:700;cursor:pointer}.nav button:hover{background:#141f2e;color:#fff}.nav button.active{background:#17263a;color:#fff;border:1px solid #2a4666}.sub{padding-left:15px;margin:3px 0 7px;border-left:1px solid #26364c}.sub button.active{color:var(--cyan);background:#102431}.foot{margin-top:auto;color:#7589a5;font-size:10px;padding:10px}.main{min-width:0;min-height:100vh}.top{position:sticky;top:0;z-index:20;height:62px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:12px;padding:0 18px;background:#0c131df5;backdrop-filter:blur(8px)}.title{font-weight:850}.title small{display:block;color:var(--muted);font-size:11px;margin-top:2px}.pill{margin-left:auto;border:1px solid #2e435d;background:#121e2c;color:#a8bed8;border-radius:999px;padding:7px 10px;font-size:11px}.content{display:grid;grid-template-columns:minmax(0,1fr) 285px;align-items:start}.reviewFrame{display:block;width:100%;height:980px;border:0;background:#0d1015}.queue{position:sticky;top:62px;max-height:calc(100vh - 62px);border-left:1px solid var(--line);background:#0c131d;overflow:auto;padding:14px}.queue h3{font-size:12px;margin:3px 0 5px}.queue p{color:var(--muted);font-size:11px;line-height:1.45;margin:0 0 12px}.card{padding:9px 10px;border:1px solid #23334a;background:#111b29;border-radius:10px;margin:7px 0}.card b{font-size:11px;display:block}.card span{font-size:10px;color:#8ea2bb}.card.reference{border-color:#574528;background:#211b11}.legend{margin-top:13px;border-top:1px solid #23334a;padding-top:12px;font-size:10px;color:#8ea2bb;line-height:1.5}.mobileNote{display:none}
+@media(max-width:900px){.app{grid-template-columns:1fr}.sidebar{display:none}.top{height:auto;min-height:56px;padding:10px 12px}.pill{display:none}.mobileNote{display:block;font-size:10px;color:var(--muted);margin-left:auto}.content{grid-template-columns:1fr}.queue{position:static;max-height:none;border-left:0;border-top:1px solid var(--line)}.reviewFrame{height:1450px}}
 </style>
 </head>
 <body>
@@ -15,46 +15,32 @@
  <aside class="sidebar">
   <div class="brand">Pokemon Card Dashboard<small>Scan / grading / learning</small></div>
   <nav class="nav">
-   <button>Collection</button>
-   <button>New batch</button>
-   <button>Pair check</button>
-   <button>Storage mode</button>
-   <button>Scan-QA</button>
-   <button>Card dossier</button>
+   <button>Collection</button><button>New batch</button><button>Pair check</button><button>Storage mode</button><button>Scan-QA</button><button>Card dossier</button>
    <button class="active">AI Learning</button>
    <div class="sub"><button class="active">Inner Review</button><button>Outer Review</button><button>Back Review</button></div>
-   <button>Grader comparison</button>
-   <button>Market / sales</button>
+   <button>Grader comparison</button><button>Market / sales</button>
   </nav>
-  <div class="foot">v0.5 dev build<br>Inner Gold Review integrated</div>
+  <div class="foot">v0.6 light build<br>Inner Gold Review integrated</div>
  </aside>
  <section class="main">
-  <header class="top"><div class="title">AI Learning · Inner Review<small>Gold Set v0.4 · 16 geselecteerde kaarten</small></div><div class="pill">Geen tekst over kaartbeeld · autosave actief</div><div class="mobileNote">16-card review</div></header>
+  <header class="top"><div class="title">AI Learning · Inner Review<small>Gold Set v0.4 · 16 geselecteerde kaarten</small></div><div class="pill">Lichte build · normaal scrollen · autosave</div><div class="mobileNote">16-card review</div></header>
   <div class="content">
-   <iframe class="reviewFrame" src="review.html" title="Inner Gold Review"></iframe>
+   <iframe id="reviewFrame" class="reviewFrame" src="review.html" title="Inner Gold Review" loading="eager"></iframe>
    <aside class="queue">
-    <h3>Review queue · 16</h3>
-    <p>Alleen de kaarten die na de eigen AI/geometry/reference-rondes nog informatiewaarde hebben.</p>
-    <div class="card"><b>A-B03-P5 · Gengar</b><span>standard bordered</span></div>
-    <div class="card"><b>A-B12-P5 · Pikachu</b><span>standard bordered</span></div>
-    <div class="card"><b>A-B13-P1 · Blastoise</b><span>standard bordered</span></div>
-    <div class="card"><b>A-B14-P6 · Gengar</b><span>standard bordered</span></div>
-    <div class="card"><b>A-B03-P4 · Misty's Lapras</b><span>full-art / reference candidate</span></div>
-    <div class="card"><b>A-B07-P4 · Conkeldurr V</b><span>full-art / reference candidate</span></div>
-    <div class="card"><b>A-B10-P6 · Mega Excadrill ex</b><span>full-art + crop regression</span></div>
-    <div class="card"><b>A-B16-P5 · Mega Greninja ex</b><span>full-art / reference candidate</span></div>
-    <div class="card"><b>A-B01-P5 · N's Reshiram</b><span>illustration special</span></div>
-    <div class="card"><b>A-B05-P4 · Clefairy</b><span>illustration special</span></div>
-    <div class="card"><b>A-B15-P1 · Fomantis</b><span>illustration + crop regression</span></div>
-    <div class="card"><b>A-B15-P2 · Spewpa</b><span>illustration + crop regression</span></div>
-    <div class="card"><b>A-B04-P6 · Misty's Vitality</b><span>trainer / item / energy</span></div>
-    <div class="card"><b>A-B09-P4 · Lure Module</b><span>trainer / item / energy</span></div>
-    <div class="card reference"><b>A-B10-P5 · Black Belt's Training</b><span>REFERENCE REQUIRED · known false inner line</span></div>
-    <div class="card"><b>A-B13-P6 · Wondrous Patch</b><span>trainer / item / energy</span></div>
-    <div class="legend">Cyaan = bevestigde fysieke kaartrand.<br>Magenta = AI-voorstel printrand.<br><br>Bij borderless/full-art: kies reference/template als een echte inner-rand niet bestaat.</div>
+    <h3>Review queue · 16</h3><p>Alleen kaarten die na de AI/geometry/reference-rondes nog informatiewaarde hebben.</p>
+    <div class="card"><b>A-B03-P5 · Gengar</b><span>standard bordered</span></div><div class="card"><b>A-B12-P5 · Pikachu</b><span>standard bordered</span></div><div class="card"><b>A-B13-P1 · Blastoise</b><span>standard bordered</span></div><div class="card"><b>A-B14-P6 · Gengar</b><span>standard bordered</span></div>
+    <div class="card"><b>A-B03-P4 · Misty's Lapras</b><span>full-art / reference candidate</span></div><div class="card"><b>A-B07-P4 · Conkeldurr V</b><span>full-art / reference candidate</span></div><div class="card"><b>A-B10-P6 · Mega Excadrill ex</b><span>full-art + crop regression</span></div><div class="card"><b>A-B16-P5 · Mega Greninja ex</b><span>full-art / reference candidate</span></div>
+    <div class="card"><b>A-B01-P5 · N's Reshiram</b><span>illustration special</span></div><div class="card"><b>A-B05-P4 · Clefairy</b><span>illustration special</span></div><div class="card"><b>A-B15-P1 · Fomantis</b><span>illustration + crop regression</span></div><div class="card"><b>A-B15-P2 · Spewpa</b><span>illustration + crop regression</span></div>
+    <div class="card"><b>A-B04-P6 · Misty's Vitality</b><span>trainer / item / energy</span></div><div class="card"><b>A-B09-P4 · Lure Module</b><span>trainer / item / energy</span></div><div class="card reference"><b>A-B10-P5 · Black Belt's Training</b><span>REFERENCE REQUIRED · known false inner line</span></div><div class="card"><b>A-B13-P6 · Wondrous Patch</b><span>trainer / item / energy</span></div>
+    <div class="legend">Cyaan = fysieke kaartcontour.<br>Magenta = AI-voorstel printrand.<br><br>Bij borderless/full-art: kies reference/template als een echte innerrand niet bestaat.</div>
    </aside>
   </div>
  </section>
 </div>
-</body>
-</html>
+<script>
+const frame=document.getElementById('reviewFrame');
+function setFrameHeight(h){if(Number.isFinite(h)&&h>500&&h<5000)frame.style.height=Math.ceil(h+2)+'px'}
+window.addEventListener('message',e=>{if(e.source===frame.contentWindow&&e.data?.type==='review-height')setFrameHeight(Number(e.data.height))});
+frame.addEventListener('load',()=>{try{setFrameHeight(frame.contentDocument.documentElement.scrollHeight)}catch(_){}});
+</script>
+</body></html>

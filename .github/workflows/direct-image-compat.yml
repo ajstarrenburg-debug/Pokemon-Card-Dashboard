@@ -1,0 +1,87 @@
+name: Direct image compatibility gate
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'direct-image-test.html'
+      - '.github/workflows/direct-image-compat.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  browser-matrix:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Generate clean baseline JPEG
+        run: |
+          python -m pip install --quiet pillow
+          mkdir -p cards
+          python - <<'PY'
+          from PIL import Image, ImageDraw
+          im=Image.new('RGB',(420,587),(25,32,43))
+          d=ImageDraw.Draw(im)
+          d.rounded_rectangle((18,18,401,568), radius=24, outline=(52,227,255), width=8)
+          d.rectangle((45,70,375,220), fill=(52,92,105))
+          d.ellipse((105,245,315,455), fill=(116,72,150))
+          d.rectangle((80,485,340,530), fill=(220,220,220))
+          im.save('cards/browser-test.jpg','JPEG',quality=88,optimize=True,progressive=False,subsampling=2)
+          check=Image.open('cards/browser-test.jpg')
+          check.verify()
+          print('JPEG_OK 420x587 baseline')
+          PY
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Install browser engines
+        run: |
+          npm init -y >/dev/null 2>&1
+          npm install --no-save playwright@1.55.0
+          npx playwright install --with-deps chromium firefox webkit
+      - name: Start local site
+        run: |
+          python3 -m http.server 4173 >/tmp/direct-site.log 2>&1 &
+          sleep 2
+      - name: Test Chromium Firefox WebKit
+        run: |
+          cat > direct-test.mjs <<'JS'
+          import { chromium, firefox, webkit } from 'playwright';
+          const engines={chromium,firefox,webkit};
+          let failed=false;
+          for(const [name,engine] of Object.entries(engines)){
+            const errors=[];
+            let browser;
+            try{
+              browser=await engine.launch({headless:true});
+              const page=await browser.newPage({viewport:{width:1200,height:900}});
+              page.on('console',m=>{if(m.type()==='error')errors.push(m.text())});
+              page.on('pageerror',e=>errors.push(String(e)));
+              await page.goto('http://127.0.0.1:4173/direct-image-test.html',{waitUntil:'networkidle'});
+              await page.waitForFunction(()=>document.body.dataset.imageStatus==='loaded',{timeout:10000});
+              const m=await page.evaluate(async()=>{
+                const img=document.querySelector('#cardImage');
+                await img.decode();
+                const r=img.getBoundingClientRect();
+                return {natural:[img.naturalWidth,img.naturalHeight],rendered:[Math.round(r.width),Math.round(r.height)],status:document.body.dataset.imageStatus};
+              });
+              const pass=m.status==='loaded'&&m.natural[0]===420&&m.natural[1]===587&&errors.length===0;
+              console.log(`RESULT ${name.toUpperCase()} ${JSON.stringify({...m,errors,pass})}`);
+              await page.screenshot({path:`direct-${name}.png`,fullPage:true});
+              if(!pass) failed=true;
+            }catch(e){console.log(`RESULT ${name.toUpperCase()} FATAL ${String(e)}`);failed=true;}
+            finally{if(browser)await browser.close();}
+          }
+          if(failed)process.exit(1);
+          JS
+          node direct-test.mjs
+      - name: Upload screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: direct-image-browser-matrix
+          path: 'direct-*.png'
+          if-no-files-found: ignore

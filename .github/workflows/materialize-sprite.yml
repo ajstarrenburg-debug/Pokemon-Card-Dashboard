@@ -1,0 +1,44 @@
+name: Materialize card sprite
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'sprite/data.js'
+      - '.github/workflows/materialize-sprite.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Decode sprite JPEG
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import base64, re
+          src = Path('sprite/data.js').read_text()
+          m = re.fullmatch(r'window\.SPRITE_B64="([A-Za-z0-9+/=]+)";\s*', src)
+          if not m:
+              raise SystemExit('Could not parse sprite/data.js')
+          raw = base64.b64decode(m.group(1), validate=True)
+          if not raw.startswith(b'\xff\xd8') or not raw.endswith(b'\xff\xd9'):
+              raise SystemExit('Decoded file is not a complete JPEG')
+          Path('sprite/cards.jpg').write_bytes(raw)
+          print('Wrote sprite/cards.jpg:', len(raw), 'bytes')
+          PY
+      - name: Commit generated JPEG
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add sprite/cards.jpg
+          if git diff --cached --quiet; then
+            echo "No JPEG change"
+          else
+            git commit -m "Materialize card sprite JPEG"
+            git push
+          fi

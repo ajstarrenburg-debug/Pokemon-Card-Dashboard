@@ -1,0 +1,106 @@
+name: Browser compatibility check
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'index.html'
+      - 'review.html'
+      - 'sprite/**'
+      - '.github/workflows/browser-compat.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Inspect sprite dimensions
+        run: |
+          python -m pip install --quiet pillow
+          python - <<'PY'
+          from PIL import Image
+          p='sprite/cards.jpg'
+          im=Image.open(p)
+          print(f'SPRITE_DIMENSIONS={im.width}x{im.height}')
+          print(f'CELL_IF_4X4={im.width/4:.1f}x{im.height/4:.1f}')
+          print(f'EXPECTED_FOR_630x880_CELLS={630*4}x{880*4}')
+          if im.width < 2520 or im.height < 3520:
+              print('WARNING: sprite is lower resolution than 4 full 630x880 review cells')
+          PY
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
+      - name: Install Playwright
+        run: |
+          npm init -y >/dev/null 2>&1
+          npm install --no-save playwright@1.55.0
+          npx playwright install --with-deps chromium firefox webkit
+
+      - name: Start local site
+        run: |
+          python3 -m http.server 4173 > /tmp/site.log 2>&1 &
+          echo $! > /tmp/site.pid
+          sleep 2
+
+      - name: Test Chromium Firefox WebKit
+        run: |
+          cat > /tmp/browser-test.mjs <<'JS'
+          import { chromium, firefox, webkit } from 'playwright';
+          const engines = { chromium, firefox, webkit };
+          let failed = false;
+          for (const [name, engine] of Object.entries(engines)) {
+            const browser = await engine.launch({headless:true});
+            const page = await browser.newPage({viewport:{width:1536,height:1024}, deviceScaleFactor:1});
+            const errors=[];
+            page.on('console', m => { if (m.type()==='error') errors.push(m.text()); });
+            page.on('pageerror', e => errors.push(String(e)));
+            await page.goto('http://127.0.0.1:4173/', {waitUntil:'networkidle'});
+            const frame = page.frames().find(f => f.url().includes('/review.html'));
+            if (!frame) throw new Error(`${name}: review iframe missing`);
+            await frame.waitForSelector('#img');
+            await frame.waitForFunction(() => document.querySelector('#img')?.dataset.imageStatus === 'loaded', null, {timeout:10000});
+            const metrics = await frame.evaluate(async () => {
+              const el=document.querySelector('#img');
+              const stage=document.querySelector('#stage');
+              const cs=getComputedStyle(el);
+              const r=stage.getBoundingClientRect();
+              const img=new Image();
+              img.src='sprite/cards.jpg?v=4';
+              await img.decode();
+              return {
+                imageStatus:el.dataset.imageStatus,
+                natural:[img.naturalWidth,img.naturalHeight],
+                stage:[Math.round(r.width),Math.round(r.height)],
+                backgroundImage:cs.backgroundImage,
+                backgroundSize:cs.backgroundSize,
+                backgroundPosition:cs.backgroundPosition,
+                spriteCol:0,
+                spriteRow:0
+              };
+            });
+            console.log(`${name.toUpperCase()} ${JSON.stringify(metrics)}`);
+            console.log(`${name.toUpperCase()} ERRORS ${JSON.stringify(errors)}`);
+            await page.screenshot({path:`${name}-dashboard.png`, fullPage:true});
+            if (errors.length) failed = true;
+            if (metrics.natural[0] < 2520 || metrics.natural[1] < 3520) failed = true;
+            await browser.close();
+          }
+          if (failed) process.exitCode=1;
+          JS
+          node /tmp/browser-test.mjs
+
+      - name: Upload browser screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: browser-compat-screenshots
+          path: '*-dashboard.png'
+          if-no-files-found: ignore

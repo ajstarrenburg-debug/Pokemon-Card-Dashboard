@@ -1,3 +1,4 @@
+# Browser matrix v1
 name: Browser compatibility check
 
 on:
@@ -75,16 +76,7 @@ jobs:
               const img=new Image();
               img.src='sprite/cards.jpg?v=4';
               await img.decode();
-              return {
-                imageStatus:el.dataset.imageStatus,
-                natural:[img.naturalWidth,img.naturalHeight],
-                stage:[Math.round(r.width),Math.round(r.height)],
-                backgroundImage:cs.backgroundImage,
-                backgroundSize:cs.backgroundSize,
-                backgroundPosition:cs.backgroundPosition,
-                spriteCol:0,
-                spriteRow:0
-              };
+              return {imageStatus:el.dataset.imageStatus,natural:[img.naturalWidth,img.naturalHeight],stage:[Math.round(r.width),Math.round(r.height)],backgroundImage:cs.backgroundImage,backgroundSize:cs.backgroundSize,backgroundPosition:cs.backgroundPosition};
             });
             console.log(`${name.toUpperCase()} ${JSON.stringify(metrics)}`);
             console.log(`${name.toUpperCase()} ERRORS ${JSON.stringify(errors)}`);

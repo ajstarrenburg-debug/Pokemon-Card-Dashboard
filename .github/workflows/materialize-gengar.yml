@@ -1,0 +1,41 @@
+name: Materialize direct Gengar asset
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'cards_b64/A-B03-P5.txt'
+      - '.github/workflows/materialize-gengar.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  materialize:
+    if: ${{ github.actor != 'github-actions[bot]' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Decode JPEG
+        run: |
+          mkdir -p cards
+          base64 -d cards_b64/A-B03-P5.txt > cards/A-B03-P5.jpg
+          python -m pip install --quiet pillow
+          python - <<'PY'
+          from PIL import Image
+          p='cards/A-B03-P5.jpg'
+          im=Image.open(p)
+          im.verify()
+          im=Image.open(p)
+          print('GENGAR', im.size, im.mode)
+          assert im.size == (420, 587)
+          PY
+      - name: Commit direct asset
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add cards/A-B03-P5.jpg
+          git diff --cached --quiet && exit 0
+          git commit -m 'Materialize direct Gengar JPEG'
+          git push

@@ -1,0 +1,97 @@
+name: Restore individual review images
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/restore-review-images.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  restore:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Extract 16 Gold Set JPEGs from original review commit
+        run: |
+          python -m pip install --quiet pillow
+          python - <<'PY'
+          from pathlib import Path
+          from io import BytesIO
+          from PIL import Image
+          import base64, re, subprocess
+
+          old_commit = '05b8a5c092ad6d72706a8eb03c380277c36fec63'
+          src = subprocess.check_output(['git','show',f'{old_commit}:review.html'], text=True)
+          matches = re.findall(r'"card_id":"([^"]+)".*?"img":"data:image/jpeg;base64,([A-Za-z0-9+/=]+)"', src, flags=re.S)
+          if len(matches) != 16:
+              raise SystemExit(f'Expected 16 card images, found {len(matches)}')
+
+          out = Path('cards')
+          out.mkdir(exist_ok=True)
+          seen = set()
+          for card_id, payload in matches:
+              if card_id in seen:
+                  raise SystemExit(f'Duplicate card id: {card_id}')
+              seen.add(card_id)
+              raw = base64.b64decode(payload, validate=True)
+              im = Image.open(BytesIO(raw))
+              im.verify()
+              im = Image.open(BytesIO(raw))
+              print(card_id, im.size, len(raw))
+              if im.size != (630, 880):
+                  raise SystemExit(f'Unexpected dimensions for {card_id}: {im.size}')
+              (out / f'{card_id}.jpg').write_bytes(raw)
+          PY
+
+      - name: Replace sprite renderer with individual image renderer
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import re
+
+          p = Path('review.html')
+          s = p.read_text()
+          original = s
+
+          s = s.replace('.stage .sprite,.stage svg', '.stage .cardimg,.stage svg')
+          s = s.replace('.stage .sprite{background-repeat:no-repeat;background-size:400% 400%;background-image:var(--sprite);border-radius:8px}', '.stage .cardimg{object-fit:fill;border-radius:8px;background:#080a0e}')
+          s = s.replace('<div id="img" class="sprite"></div>', '<img id="img" class="cardimg" alt="">')
+          s = s.replace('<script src="sprite/sprite.js"></script>', '')
+          s = re.sub(r'document\.documentElement\.style\.setProperty\(\'--sprite\'.*?\);', '', s, count=1)
+          old_render = "$('img').style.backgroundPosition=(it.sprite_col/3*100).toFixed(5)+'% '+(it.sprite_row/3*100).toFixed(5)+'%';"
+          new_render = "$('img').src='cards/'+it.card_id+'.jpg?v=1';$('img').alt=it.card_id+' · '+it.name;"
+          if old_render not in s:
+              raise SystemExit('Could not find sprite render statement')
+          s = s.replace(old_render, new_render, 1)
+
+          if s == original:
+              raise SystemExit('review.html was not changed')
+          if 'background-size:400% 400%' in s or 'sprite/sprite.js' in s:
+              raise SystemExit('Legacy sprite renderer still present')
+          p.write_text(s)
+          PY
+
+      - name: Sanity check rendered asset references
+        run: |
+          test "$(find cards -maxdepth 1 -name 'A-B*.jpg' | wc -l)" -eq 16
+          grep -q "cards/'+it.card_id+'.jpg" review.html
+          ! grep -q 'background-size:400% 400%' review.html
+
+      - name: Commit restored images and renderer
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add cards review.html
+          if git diff --cached --quiet; then
+            echo "No changes"
+          else
+            git commit -m "Restore individual Gold Set review images"
+            git push
+          fi

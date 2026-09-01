@@ -1,4 +1,4 @@
-# Browser matrix v2
+# Browser matrix v3
 name: Browser compatibility check
 
 on:
@@ -8,6 +8,7 @@ on:
       - 'index.html'
       - 'review.html'
       - 'sprite/**'
+      - 'cards/**'
       - '.github/workflows/browser-compat.yml'
   workflow_dispatch:
 
@@ -21,7 +22,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Inspect sprite dimensions
+      - name: Inspect current sprite
         run: |
           python -m pip install --quiet pillow
           python - <<'PY'
@@ -31,6 +32,11 @@ jobs:
           print(f'SPRITE_DIMENSIONS={im.width}x{im.height}')
           print(f'CELL_IF_4X4={im.width/4:.1f}x{im.height/4:.1f}')
           print(f'EXPECTED_FOR_630x880_CELLS={630*4}x{880*4}')
+          try:
+              im.verify()
+              print('PIL_VERIFY=OK')
+          except Exception as e:
+              print('PIL_VERIFY=FAIL', repr(e))
           PY
 
       - uses: actions/setup-node@v4
@@ -49,47 +55,60 @@ jobs:
           echo $! > /tmp/site.pid
           sleep 2
 
-      - name: Test Chromium Firefox WebKit
+      - name: Test Chromium Firefox WebKit without early abort
         run: |
           cat > browser-test.mjs <<'JS'
           import { chromium, firefox, webkit } from 'playwright';
           const engines = { chromium, firefox, webkit };
-          let failed = false;
+          const results = {};
           for (const [name, engine] of Object.entries(engines)) {
-            const browser = await engine.launch({headless:true});
-            const page = await browser.newPage({viewport:{width:1536,height:1024}, deviceScaleFactor:1});
-            const errors=[];
-            page.on('console', m => { if (m.type()==='error') errors.push(m.text()); });
-            page.on('pageerror', e => errors.push(String(e)));
-            await page.goto('http://127.0.0.1:4173/', {waitUntil:'networkidle'});
-            const frame = page.frames().find(f => f.url().includes('/review.html'));
-            if (!frame) throw new Error(`${name}: review iframe missing`);
-            await frame.waitForSelector('#img');
-            await frame.waitForFunction(() => document.querySelector('#img')?.dataset.imageStatus === 'loaded', null, {timeout:10000});
-            const metrics = await frame.evaluate(async () => {
-              const el=document.querySelector('#img');
-              const stage=document.querySelector('#stage');
-              const cs=getComputedStyle(el);
-              const r=stage.getBoundingClientRect();
-              const img=new Image();
-              img.src='sprite/cards.jpg?v=4';
-              await img.decode();
-              return {
-                imageStatus:el.dataset.imageStatus,
-                natural:[img.naturalWidth,img.naturalHeight],
-                stage:[Math.round(r.width),Math.round(r.height)],
-                backgroundSize:cs.backgroundSize,
-                backgroundPosition:cs.backgroundPosition,
-                backgroundImageLoaded:cs.backgroundImage.includes('cards.jpg')
-              };
-            });
-            console.log(`${name.toUpperCase()} ${JSON.stringify(metrics)}`);
-            console.log(`${name.toUpperCase()} ERRORS ${JSON.stringify(errors)}`);
-            await page.screenshot({path:`${name}-dashboard.png`, fullPage:true});
-            if (errors.length || !metrics.backgroundImageLoaded) failed = true;
-            await browser.close();
+            let browser;
+            const result = results[name] = { engine:name, pass:false, consoleErrors:[] };
+            try {
+              browser = await engine.launch({headless:true});
+              const page = await browser.newPage({viewport:{width:1536,height:1024}, deviceScaleFactor:1});
+              page.on('console', m => { if (m.type()==='error') result.consoleErrors.push(m.text()); });
+              page.on('pageerror', e => result.consoleErrors.push(String(e)));
+              await page.goto('http://127.0.0.1:4173/', {waitUntil:'networkidle'});
+              const frame = page.frames().find(f => f.url().includes('/review.html'));
+              if (!frame) throw new Error('review iframe missing');
+              await frame.waitForSelector('#img');
+              const metrics = await frame.evaluate(async () => {
+                const el=document.querySelector('#img');
+                const stage=document.querySelector('#stage');
+                const cs=getComputedStyle(el);
+                const r=stage.getBoundingClientRect();
+                const img=new Image();
+                let loadOK=false, loadError='', decodeOK=false, decodeError='';
+                const loaded = new Promise(resolve => {
+                  img.onload=()=>{loadOK=true;resolve();};
+                  img.onerror=()=>{loadError='image onerror';resolve();};
+                });
+                img.src='sprite/cards.jpg?browsercheck=3';
+                await loaded;
+                try { await img.decode(); decodeOK=true; } catch(e) { decodeError=String(e); }
+                return {
+                  imageStatus:el.dataset.imageStatus||null,
+                  natural:[img.naturalWidth,img.naturalHeight],
+                  stage:[Math.round(r.width),Math.round(r.height)],
+                  backgroundSize:cs.backgroundSize,
+                  backgroundPosition:cs.backgroundPosition,
+                  backgroundImageLoaded:cs.backgroundImage.includes('cards.jpg'),
+                  loadOK,loadError,decodeOK,decodeError
+                };
+              });
+              Object.assign(result, metrics);
+              result.pass = Boolean(metrics.backgroundImageLoaded && metrics.loadOK && metrics.decodeOK && result.consoleErrors.length===0);
+              await page.screenshot({path:`${name}-dashboard.png`, fullPage:true});
+            } catch (e) {
+              result.fatal=String(e);
+            } finally {
+              if (browser) await browser.close();
+            }
+            console.log(`RESULT ${name.toUpperCase()} ${JSON.stringify(result)}`);
           }
-          if (failed) process.exitCode=1;
+          console.log('BROWSER_MATRIX '+JSON.stringify(results));
+          if (!Object.values(results).every(r=>r.pass)) process.exitCode=1;
           JS
           node ./browser-test.mjs
 
@@ -99,4 +118,4 @@ jobs:
         with:
           name: browser-compat-screenshots
           path: '*-dashboard.png'
-          if-no-files-found: error
+          if-no-files-found: ignore

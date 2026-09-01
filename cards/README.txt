@@ -1,0 +1,1 @@
+Gold Review card assets. Individual JPEGs are loaded directly by review.html; no sprite/base64 loader.

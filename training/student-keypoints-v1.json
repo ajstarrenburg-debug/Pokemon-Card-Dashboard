@@ -1,0 +1,28 @@
+{
+  "schema": "border-keypoints-v1",
+  "input": {
+    "width": 630,
+    "height": 880,
+    "color_space": "RGB"
+  },
+  "measurement_rule": "centerline_on_visual_transition",
+  "sample_positions": [0.25, 0.5, 0.75],
+  "prediction_heads": {
+    "layout_mode": ["inner_edge", "reference_required", "not_measurable"],
+    "tilt_deg": {"min": -4, "max": 4},
+    "outer_keypoints": {"count": 12, "coordinate_space": "normalized_xy"},
+    "inner_keypoints": {"count": 12, "coordinate_space": "normalized_xy", "nullable_for_reference": true}
+  },
+  "training_policy": {
+    "ground_truth_source": "confirmed_gold_user_only",
+    "pseudo_labels_are_ground_truth": false,
+    "worst_point_drives_centering": true,
+    "full_art_uses_reference_route": true
+  },
+  "loss_weights": {
+    "outer_keypoints": 1.0,
+    "inner_keypoints": 1.25,
+    "tilt_deg": 0.35,
+    "layout_mode": 0.75
+  }
+}

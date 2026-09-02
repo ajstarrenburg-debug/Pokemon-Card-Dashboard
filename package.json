@@ -1,11 +1,13 @@
 {
   "name": "pokemon-card-dashboard",
   "private": true,
-  "version": "0.11.0",
+  "version": "0.12.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build"
+    "build": "vite build",
+    "test:student": "node tools/build_student_dataset.mjs --self-test",
+    "student:prepare": "node tools/build_student_dataset.mjs"
   },
   "devDependencies": {
     "vite": "7.1.3"

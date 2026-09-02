@@ -6,7 +6,12 @@ on:
     paths:
       - 'index.html'
       - 'review.html'
+      - 'review.css'
+      - 'review.js'
       - 'cards/**'
+      - 'tests/browser-compat.mjs'
+      - 'training/**'
+      - 'tools/build_student_dataset.mjs'
       - '.github/workflows/browser-compat.yml'
   workflow_dispatch:
 
@@ -42,10 +47,15 @@ jobs:
         with:
           node-version: '24'
 
+      - name: Validate build and student schema
+        run: |
+          npm ci
+          npm run test:student
+          npm run build
+
       - name: Install browser engines
         run: |
-          npm init -y >/dev/null 2>&1
-          npm install --no-save playwright@1.55.0
+          npm install --no-save --package-lock=false playwright@1.55.0
           npx playwright install --with-deps chromium firefox webkit
 
       - name: Start local site
@@ -54,196 +64,12 @@ jobs:
           sleep 2
 
       - name: Test Chromium Firefox and WebKit
-        run: |
-          cat > browser-test.mjs <<'JS'
-          import { chromium, firefox, webkit } from 'playwright';
-
-          const engines = { chromium, firefox, webkit };
-          const ids = [
-            'A-B03-P5','A-B12-P5','A-B13-P1','A-B14-P6',
-            'A-B03-P4','A-B07-P4','A-B10-P6','A-B16-P5',
-            'A-B01-P5','A-B05-P4','A-B15-P1','A-B15-P2',
-            'A-B04-P6','A-B09-P4','A-B10-P5','A-B13-P6'
-          ];
-          const results = {};
-
-          for (const [name, engine] of Object.entries(engines)) {
-            let browser;
-            const result = results[name] = { pass: false, errors: [] };
-            try {
-              browser = await engine.launch({ headless: true });
-              const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
-              page.on('console', message => {
-                if (message.type() === 'error') result.errors.push(message.text());
-              });
-              page.on('pageerror', error => result.errors.push(String(error)));
-              await page.goto('http://127.0.0.1:4173/', { waitUntil: 'load' });
-
-              const frame = page.frames().find(candidate => candidate.url().includes('/review.html'));
-              if (!frame) throw new Error('review iframe missing');
-              await frame.waitForFunction(() => {
-                const image = document.querySelector('#img');
-                return image?.complete && image.naturalWidth === 630 && image.naturalHeight === 880;
-              });
-
-              result.allImages = await frame.evaluate(async cardIds => {
-                const checks = await Promise.all(cardIds.map(cardId => new Promise(resolve => {
-                  const image = new Image();
-                  image.onload = async () => {
-                    try {
-                      await image.decode();
-                      resolve(image.naturalWidth === 630 && image.naturalHeight === 880);
-                    } catch { resolve(false); }
-                  };
-                  image.onerror = () => resolve(false);
-                  image.src = `cards/${cardId}.jpg?matrix=11`;
-                })));
-                return checks.every(Boolean);
-              }, ids);
-
-              result.initial = await frame.evaluate(() => ({
-                title: document.querySelector('#title')?.textContent,
-                src: document.querySelector('#img')?.getAttribute('src'),
-                natural: [document.querySelector('#img')?.naturalWidth, document.querySelector('#img')?.naturalHeight],
-                imageStatusHidden: document.querySelector('#imageStatus')?.hidden,
-                outerVisible: getComputedStyle(document.querySelector('#outerGroup')).opacity,
-                innerVisible: getComputedStyle(document.querySelector('#innerGroup')).opacity,
-                levelGuidesVisible: getComputedStyle(document.querySelector('#levelGuide')).display !== 'none',
-                tiltModeActive: document.querySelector('#showTilt')?.classList.contains('activeTilt'),
-                innerDash: getComputedStyle(document.querySelector('#innerRect')).strokeDasharray,
-                controlsBesideCard: (() => {
-                  const card = document.querySelector('.cardwrap')?.getBoundingClientRect();
-                  const side = document.querySelector('.side')?.getBoundingClientRect();
-                  return Boolean(card && side && side.left >= card.right && Math.abs(side.top - card.top) < 24);
-                })()
-              }));
-
-              const outerBeforePan = Number(await frame.locator('#outerRect').getAttribute('x'));
-              await frame.locator('#panX').evaluate(element => {
-                element.value = '24';
-                element.dispatchEvent(new Event('input', { bubbles: true }));
-              });
-              await frame.locator('#panY').evaluate(element => {
-                element.value = '-18';
-                element.dispatchEvent(new Event('input', { bubbles: true }));
-              });
-              result.pan = await frame.evaluate(outerX => ({
-                transform: document.querySelector('#imagePan')?.style.transform,
-                xValue: document.querySelector('#panXValue')?.textContent,
-                yValue: document.querySelector('#panYValue')?.textContent,
-                guidesStayedFixed: Number(document.querySelector('#outerRect')?.getAttribute('x')) === outerX
-              }), outerBeforePan);
-              await frame.locator('#panReset').click();
-              result.panReset = await frame.locator('#imagePan').evaluate(element => element.style.transform);
-
-              await frame.locator('#tilt').evaluate(element => {
-                element.value = '1.25';
-                element.dispatchEvent(new Event('input', { bubbles: true }));
-              });
-              result.tiltTransform = await frame.locator('#img').evaluate(element => element.style.transform);
-              result.tiltValue = await frame.locator('#tiltValue').textContent();
-              await frame.locator('#pickPivot').click();
-              await frame.locator('#svg').click({ position: { x: 185, y: 260 } });
-              result.pivotMoved = await frame.locator('#pivotDot').evaluate(element =>
-                Number(element.getAttribute('cx')) !== 315 && Number(element.getAttribute('cy')) !== 440
-              );
-              await frame.locator('#tiltAI').click();
-              result.tiltReset = await frame.locator('#img').evaluate(element => element.style.transform);
-
-              await frame.locator('#showOuter').click();
-              const innerBeforeX = Number(await frame.locator('#innerRect').getAttribute('x'));
-              const innerHandle = frame.locator('#ihL');
-              const innerBox = await innerHandle.boundingBox();
-              if (!innerBox) throw new Error('inner drag handle missing');
-              await page.mouse.move(innerBox.x + innerBox.width / 2, innerBox.y + innerBox.height / 2);
-              await page.mouse.down();
-              await page.mouse.move(innerBox.x + innerBox.width / 2 + 12, innerBox.y + innerBox.height / 2, { steps: 4 });
-              await page.mouse.up();
-              const innerAfterX = Number(await frame.locator('#innerRect').getAttribute('x'));
-              result.innerDragMoved = innerAfterX > innerBeforeX + 2;
-              result.innerAutoSelected = await frame.locator('#showInner').evaluate(element => element.classList.contains('activeInner'));
-
-              const beforeX = Number(await frame.locator('#outerRect').getAttribute('x'));
-              const handle = frame.locator('#ohL');
-              const box = await handle.boundingBox();
-              if (!box) throw new Error('outer drag handle missing');
-              await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
-              await page.mouse.down();
-              await page.mouse.move(box.x + box.width / 2 + 12, box.y + box.height / 2, { steps: 4 });
-              await page.mouse.up();
-              const afterX = Number(await frame.locator('#outerRect').getAttribute('x'));
-              result.dragMoved = afterX > beforeX + 2;
-              result.outerAutoSelected = await frame.locator('#showOuter').evaluate(element => element.classList.contains('activeOuter'));
-
-              await frame.locator('#mode').selectOption('reference_required');
-              result.referenceMode = await frame.evaluate(() => ({
-                innerHidden: getComputedStyle(document.querySelector('#innerGroup')).display === 'none',
-                buttonDisabled: document.querySelector('#showInner').disabled
-              }));
-              await frame.locator('#mode').selectOption('inner_edge');
-
-              await frame.locator('#next').click();
-              await frame.waitForFunction(() => document.querySelector('#img')?.getAttribute('src')?.includes('A-B12-P5'));
-              await frame.waitForFunction(() => document.querySelector('#img')?.naturalWidth === 630);
-              result.nextCard = await frame.locator('#title').textContent();
-
-              result.scroll = await page.evaluate(() => {
-                const before = window.scrollY;
-                window.scrollTo(0, document.documentElement.scrollHeight);
-                const after = window.scrollY;
-                return { before, after, max: document.documentElement.scrollHeight - window.innerHeight };
-              });
-
-              result.pass = Boolean(
-                result.allImages &&
-                result.initial.title?.includes('A-B03-P5') &&
-                result.initial.src?.includes('cards/A-B03-P5.jpg') &&
-                result.initial.natural[0] === 630 &&
-                result.initial.natural[1] === 880 &&
-                result.initial.imageStatusHidden === true &&
-                result.initial.levelGuidesVisible &&
-                result.initial.tiltModeActive &&
-                result.initial.innerDash !== 'none' &&
-                result.initial.innerDash.includes('5') &&
-                result.initial.controlsBesideCard &&
-                result.pan.transform?.includes('translate(') &&
-                !result.pan.transform?.includes('translate(0%') &&
-                result.pan.xValue?.includes('+24') &&
-                result.pan.yValue?.includes('-18') &&
-                result.pan.guidesStayedFixed &&
-                result.panReset?.includes('translate(0%') &&
-                result.tiltTransform === 'rotate(1.25deg)' &&
-                result.tiltValue?.includes('1,25') &&
-                result.pivotMoved &&
-                result.tiltReset === 'rotate(0deg)' &&
-                result.innerDragMoved &&
-                result.innerAutoSelected &&
-                result.dragMoved &&
-                result.outerAutoSelected &&
-                result.referenceMode.innerHidden &&
-                result.referenceMode.buttonDisabled &&
-                result.nextCard?.includes('A-B12-P5') &&
-                result.scroll.max > 0 &&
-                result.scroll.after > 0 &&
-                result.errors.length === 0
-              );
-              await page.screenshot({ path: `${name}-dashboard.png`, fullPage: true });
-            } catch (error) {
-              result.fatal = String(error);
-            } finally {
-              if (browser) await browser.close();
-            }
-            console.log(`RESULT ${name.toUpperCase()} ${JSON.stringify(result)}`);
-          }
-
-          if (!Object.values(results).every(result => result.pass)) process.exit(1);
-          JS
-          node browser-test.mjs
+        run: node tests/browser-compat.mjs
 
       - name: Upload browser screenshots
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: browser-compat-screenshots
-          path: '*-dashboard.png'
+          path: 'browser-*.png'
           if-no-files-found: ignore

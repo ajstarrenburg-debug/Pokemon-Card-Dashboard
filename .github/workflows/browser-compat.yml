@@ -96,7 +96,7 @@ jobs:
                     } catch { resolve(false); }
                   };
                   image.onerror = () => resolve(false);
-                  image.src = `cards/${cardId}.jpg?matrix=10`;
+                  image.src = `cards/${cardId}.jpg?matrix=11`;
                 })));
                 return checks.every(Boolean);
               }, ids);
@@ -109,8 +109,32 @@ jobs:
                 outerVisible: getComputedStyle(document.querySelector('#outerGroup')).opacity,
                 innerVisible: getComputedStyle(document.querySelector('#innerGroup')).opacity,
                 levelGuidesVisible: getComputedStyle(document.querySelector('#levelGuide')).display !== 'none',
-                tiltModeActive: document.querySelector('#showTilt')?.classList.contains('activeTilt')
+                tiltModeActive: document.querySelector('#showTilt')?.classList.contains('activeTilt'),
+                innerDash: getComputedStyle(document.querySelector('#innerRect')).strokeDasharray,
+                controlsBesideCard: (() => {
+                  const card = document.querySelector('.cardwrap')?.getBoundingClientRect();
+                  const side = document.querySelector('.side')?.getBoundingClientRect();
+                  return Boolean(card && side && side.left >= card.right && Math.abs(side.top - card.top) < 24);
+                })()
               }));
+
+              const outerBeforePan = Number(await frame.locator('#outerRect').getAttribute('x'));
+              await frame.locator('#panX').evaluate(element => {
+                element.value = '24';
+                element.dispatchEvent(new Event('input', { bubbles: true }));
+              });
+              await frame.locator('#panY').evaluate(element => {
+                element.value = '-18';
+                element.dispatchEvent(new Event('input', { bubbles: true }));
+              });
+              result.pan = await frame.evaluate(outerX => ({
+                transform: document.querySelector('#imagePan')?.style.transform,
+                xValue: document.querySelector('#panXValue')?.textContent,
+                yValue: document.querySelector('#panYValue')?.textContent,
+                guidesStayedFixed: Number(document.querySelector('#outerRect')?.getAttribute('x')) === outerX
+              }), outerBeforePan);
+              await frame.locator('#panReset').click();
+              result.panReset = await frame.locator('#imagePan').evaluate(element => element.style.transform);
 
               await frame.locator('#tilt').evaluate(element => {
                 element.value = '1.25';
@@ -179,6 +203,15 @@ jobs:
                 result.initial.imageStatusHidden === true &&
                 result.initial.levelGuidesVisible &&
                 result.initial.tiltModeActive &&
+                result.initial.innerDash !== 'none' &&
+                result.initial.innerDash.includes('5') &&
+                result.initial.controlsBesideCard &&
+                result.pan.transform?.includes('translate(') &&
+                !result.pan.transform?.includes('translate(0%') &&
+                result.pan.xValue?.includes('+24') &&
+                result.pan.yValue?.includes('-18') &&
+                result.pan.guidesStayedFixed &&
+                result.panReset?.includes('translate(0%') &&
                 result.tiltTransform === 'rotate(1.25deg)' &&
                 result.tiltValue?.includes('1,25') &&
                 result.pivotMoved &&

@@ -7,6 +7,7 @@
 <style>
 :root{font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;--bg:#080d14;--side:#0d141f;--line:#24334a;--muted:#8fa3bc;--text:#eef5ff;--cyan:#36dff5}
 *{box-sizing:border-box}html{scroll-behavior:auto}body{margin:0;background:var(--bg);color:var(--text);min-height:100vh;overflow-y:auto;overflow-x:hidden}.app{display:grid;grid-template-columns:240px minmax(0,1fr);min-height:100vh}.sidebar{position:sticky;top:0;height:100vh;overflow:auto;background:linear-gradient(180deg,#0d151f,#0a1018);border-right:1px solid var(--line);padding:18px 13px;display:flex;flex-direction:column}.brand{font-size:15px;font-weight:850;padding:7px 9px 20px}.brand small{display:block;color:var(--muted);font-size:10px;margin-top:4px;font-weight:650}.nav{display:grid;gap:5px}.nav button{border:0;background:transparent;color:#9fb0c7;padding:10px 11px;text-align:left;border-radius:9px;font-weight:700;cursor:pointer}.nav button:hover{background:#141f2e;color:#fff}.nav button.active{background:#17263a;color:#fff;border:1px solid #2a4666}.sub{padding-left:15px;margin:3px 0 7px;border-left:1px solid #26364c}.sub button.active{color:var(--cyan);background:#102431}.foot{margin-top:auto;color:#7589a5;font-size:10px;padding:10px}.main{min-width:0;min-height:100vh}.top{position:sticky;top:0;z-index:20;height:62px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:12px;padding:0 18px;background:#0c131df5;backdrop-filter:blur(8px)}.title{font-weight:850}.title small{display:block;color:var(--muted);font-size:11px;margin-top:2px}.pill{margin-left:auto;border:1px solid #2e435d;background:#121e2c;color:#a8bed8;border-radius:999px;padding:7px 10px;font-size:11px}.content{display:grid;grid-template-columns:minmax(0,1fr) 285px;align-items:start}.reviewFrame{display:block;width:100%;height:980px;border:0;background:#0d1015}.queue{position:sticky;top:62px;max-height:calc(100vh - 62px);border-left:1px solid var(--line);background:#0c131d;overflow:auto;padding:14px}.queue h3{font-size:12px;margin:3px 0 5px}.queue p{color:var(--muted);font-size:11px;line-height:1.45;margin:0 0 12px}.card{padding:9px 10px;border:1px solid #23334a;background:#111b29;border-radius:10px;margin:7px 0}.card b{font-size:11px;display:block}.card span{font-size:10px;color:#8ea2bb}.card.reference{border-color:#574528;background:#211b11}.legend{margin-top:13px;border-top:1px solid #23334a;padding-top:12px;font-size:10px;color:#8ea2bb;line-height:1.5}.mobileNote{display:none}
+@media(max-width:1350px) and (min-width:901px){.content{grid-template-columns:1fr}.queue{display:none}}
 @media(max-width:900px){.app{grid-template-columns:1fr}.sidebar{display:none}.top{height:auto;min-height:56px;padding:10px 12px}.pill{display:none}.mobileNote{display:block;font-size:10px;color:var(--muted);margin-left:auto}.content{grid-template-columns:1fr}.queue{position:static;max-height:none;border-left:0;border-top:1px solid var(--line)}.reviewFrame{height:1450px}}
 </style>
 </head>
@@ -20,10 +21,10 @@
    <div class="sub"><button class="active">Inner Review</button><button>Outer Review</button><button>Back Review</button></div>
    <button>Grader comparison</button><button>Market / sales</button>
   </nav>
-  <div class="foot">v0.10 level guides<br>16 losse kaartbeelden</div>
+  <div class="foot">v0.11 beeldpositie<br>16 losse kaartbeelden</div>
  </aside>
  <section class="main">
-  <header class="top"><div class="title">AI Learning · Inner Review<small>Gold Set v0.4 · 16 geselecteerde kaarten</small></div><div class="pill">Rechtzetten · buitenrand · binnenrand · autosave</div><div class="mobileNote">16-card review</div></header>
+  <header class="top"><div class="title">AI Learning · Inner Review<small>Gold Set v0.4 · 16 geselecteerde kaarten</small></div><div class="pill">Positie · rechtzetten · buitenrand · binnenrand · autosave</div><div class="mobileNote">16-card review</div></header>
   <div class="content">
    <iframe id="reviewFrame" class="reviewFrame" src="review.html" title="Inner Gold Review" loading="eager"></iframe>
    <aside class="queue">

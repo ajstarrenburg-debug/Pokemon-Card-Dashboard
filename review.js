@@ -21,8 +21,8 @@ const WIDTH = 630;
 const HEIGHT = 880;
 const CARD_MM = {width:63, height:88};
 const SAMPLE_T = [0.25, 0.5, 0.75];
-const KEY = 'pokemon_centering_gold_v12';
-const LEGACY_KEYS = ['pokemon_centering_gold_v11','pokemon_centering_gold_v10','pokemon_centering_gold_v09','pokemon_centering_gold_v08'];
+const KEY = 'pokemon_centering_gold_v13';
+const LEGACY_KEYS = ['pokemon_centering_gold_v12','pokemon_centering_gold_v11','pokemon_centering_gold_v10','pokemon_centering_gold_v09','pokemon_centering_gold_v08'];
 const SVG_NS = 'http://www.w3.org/2000/svg';
 const $ = function(id) { return document.getElementById(id); };
 let idx = 0;
@@ -505,20 +505,6 @@ function applyLayerView(measurements) {
   drawMeasurements(data);
 }
 
-function sourcePointFromStage(target) {
-  const pan = cur.pan || panSeed();
-  const pivot = cur.pivot || pivotSeed();
-  const qx = target.x-pan.x;
-  const qy = target.y-pan.y;
-  const radians = -(Number(cur.tilt)||0)*Math.PI/180;
-  const dx = qx-pivot.x;
-  const dy = qy-pivot.y;
-  return point(
-    pivot.x+dx*Math.cos(radians)-dy*Math.sin(radians),
-    pivot.y+dx*Math.sin(radians)+dy*Math.cos(radians)
-  );
-}
-
 function drawLoupe() {
   const canvas = $('loupe');
   const context = canvas.getContext('2d');
@@ -533,49 +519,60 @@ function drawLoupe() {
     canvas.dataset.ready='0';
     return;
   }
-  const source = sourcePointFromStage(loupeTarget.point);
+  const target = loupeTarget.point;
+  const pan = cur.pan || panSeed();
+  const pivot = cur.pivot || pivotSeed();
+  const radians = (Number(cur.tilt)||0)*Math.PI/180;
   const cropWidth = 100;
-  const cropHeight = cropWidth*canvas.height/canvas.width;
+  const zoom = canvas.width/cropWidth;
   context.imageSmoothingEnabled=false;
-  const rawX=source.x-cropWidth/2;
-  const rawY=source.y-cropHeight/2;
-  const sourceX=clamp(rawX,0,WIDTH);
-  const sourceY=clamp(rawY,0,HEIGHT);
-  const sourceRight=clamp(rawX+cropWidth,0,WIDTH);
-  const sourceBottom=clamp(rawY+cropHeight,0,HEIGHT);
-  const sourceWidth=Math.max(0,sourceRight-sourceX);
-  const sourceHeight=Math.max(0,sourceBottom-sourceY);
-  if(sourceWidth>0&&sourceHeight>0) {
-    const destinationX=(sourceX-rawX)/cropWidth*canvas.width;
-    const destinationY=(sourceY-rawY)/cropHeight*canvas.height;
-    const destinationWidth=sourceWidth/cropWidth*canvas.width;
-    const destinationHeight=sourceHeight/cropHeight*canvas.height;
-    context.drawImage($('img'),sourceX,sourceY,sourceWidth,sourceHeight,destinationX,destinationY,destinationWidth,destinationHeight);
-  }
-  const color = loupeTarget.layer === 'outer' ? '#34e3ff' : '#ff4be3';
   context.save();
   context.translate(canvas.width/2,canvas.height/2);
-  context.strokeStyle=color;
-  context.globalAlpha=.7;
-  context.lineWidth=7;
-  context.setLineDash([18,14]);
-  context.beginPath();
-  context.moveTo(-canvas.width/2,0);
-  context.lineTo(canvas.width/2,0);
-  context.moveTo(0,-canvas.height/2);
-  context.lineTo(0,canvas.height/2);
-  context.stroke();
-  context.globalAlpha=1;
-  context.strokeStyle='#fff';
-  context.lineWidth=1;
-  context.setLineDash([]);
-  context.beginPath();
-  context.moveTo(-canvas.width/2,0);
-  context.lineTo(canvas.width/2,0);
-  context.moveTo(0,-canvas.height/2);
-  context.lineTo(0,canvas.height/2);
-  context.stroke();
+  context.scale(zoom,zoom);
+  context.translate(-target.x,-target.y);
+  context.translate(pan.x,pan.y);
+  context.translate(pivot.x,pivot.y);
+  context.rotate(radians);
+  context.translate(-pivot.x,-pivot.y);
+  context.drawImage($('img'),0,0,WIDTH,HEIGHT);
   context.restore();
+  const color = loupeTarget.layer === 'outer' ? '#34e3ff' : '#ff4be3';
+  const quad = cur[loupeTarget.layer];
+  const sides = loupeTarget.key.length === 1
+    ? [loupeTarget.key]
+    : ({TL:['T','L'],TR:['T','R'],BR:['B','R'],BL:['B','L']}[loupeTarget.key] || []);
+  for (const side of sides) {
+    const edge=endpoints(quad,side);
+    const dx=edge[1].x-edge[0].x;
+    const dy=edge[1].y-edge[0].y;
+    const length=Math.max(1,Math.hypot(dx,dy));
+    const ux=dx/length;
+    const uy=dy/length;
+    const span=Math.max(canvas.width,canvas.height);
+    context.save();
+    context.translate(canvas.width/2,canvas.height/2);
+    context.strokeStyle=color;
+    context.globalAlpha=.72;
+    context.lineWidth=7;
+    context.setLineDash([18,14]);
+    context.beginPath();
+    context.moveTo(-ux*span,-uy*span);
+    context.lineTo(ux*span,uy*span);
+    context.stroke();
+    context.globalAlpha=1;
+    context.strokeStyle='#fff';
+    context.lineWidth=1;
+    context.setLineDash([]);
+    context.beginPath();
+    context.moveTo(-ux*span,-uy*span);
+    context.lineTo(ux*span,uy*span);
+    context.stroke();
+    context.restore();
+  }
+  context.fillStyle='#fff';
+  context.beginPath();
+  context.arc(canvas.width/2,canvas.height/2,3,0,Math.PI*2);
+  context.fill();
   canvas.dataset.ready='1';
 }
 
@@ -592,7 +589,7 @@ function focusSide(layer,side) {
 function loadCardImage(item) {
   const img=$('img');
   const status=$('imageStatus');
-  const src='cards/'+item.card_id+'.jpg?v=12';
+  const src='cards/'+item.card_id+'.jpg?v=13';
   img.dataset.cardId=item.card_id;
   img.alt=item.card_id+' · '+item.name;
   status.hidden=false;
@@ -606,7 +603,7 @@ function loadCardImage(item) {
     notifyHeight();
     const next=ITEMS[(idx+1)%ITEMS.length];
     const preload=new Image();
-    preload.src='cards/'+next.card_id+'.jpg?v=12';
+    preload.src='cards/'+next.card_id+'.jpg?v=13';
   };
   img.onerror=function() {
     if(img.dataset.cardId!==item.card_id)return;
@@ -1020,7 +1017,7 @@ $('export').onclick=function() {
     };
   });
   const payload={
-    version:'centering-gold-v12',
+    version:'centering-gold-v13',
     schema:'border-keypoints-v1',
     created:new Date().toISOString(),
     measurement_rule:'centerline_on_visual_transition',
@@ -1030,7 +1027,7 @@ $('export').onclick=function() {
   const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'});
   const anchor=document.createElement('a');
   anchor.href=URL.createObjectURL(blob);
-  anchor.download='Pokemon_Centering_Gold_v12_labels.json';
+  anchor.download='Pokemon_Centering_Gold_v13_labels.json';
   anchor.click();
   setTimeout(function() { URL.revokeObjectURL(anchor.href); },1000);
 };

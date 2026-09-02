@@ -3,12 +3,12 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Centering Self Check v0.12</title>
-  <link rel="stylesheet" href="review.css?v=12">
+  <title>Centering Self Check v0.13</title>
+  <link rel="stylesheet" href="review.css?v=13">
 </head>
 <body>
   <header>
-    <b>Centering Self Check v0.12</b>
+    <b>Centering Self Check v0.13</b>
     <span class="progress" id="prog"></span>
     <span class="spacer"></span>
     <button id="prev" aria-label="Vorige kaart">←</button>
@@ -110,8 +110,9 @@
       <div id="layerHint" class="layerHint"></div>
 
       <section class="loupePanel">
-        <div class="loupeHead"><b>Vergrootglas ×7</b><span id="loupeLabel">Ga over een lijn of meetpunt</span></div>
-        <canvas id="loupe" width="700" height="232" aria-label="Vergroot beeld rond de geselecteerde meetlijn"></canvas>
+        <div class="loupeHead"><b>Vergrootglas ×7</b><span id="loupeLabel">Beweeg of sleep over een meetlijn</span></div>
+        <canvas id="loupe" width="700" height="350" aria-label="Vergroot beeld rond de geselecteerde meetlijn"></canvas>
+        <div class="loupeRule">Witte kern = exacte meting · gekleurde stippellijn = kijkhulp</div>
       </section>
 
       <div id="warning"></div>
@@ -150,6 +151,6 @@
       <div class="muted footnote">Bij full-art/borderless forceer je géén magenta lijn. Kies dan Reference/template nodig. Hoek, contour-keypoints, meetpunten en waarden worden lokaal als Gold label opgeslagen.</div>
     </aside>
   </main>
-  <script type="module" src="review.js?v=12"></script>
+  <script type="module" src="review.js?v=13"></script>
 </body>
 </html>

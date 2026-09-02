@@ -14,6 +14,8 @@ Development dashboard for Pokemon card scan QA, centering and AI-assisted inner-
 - worst-point L/R and T/B centering with measurement spread
 - quadrilateral corners for rotated/diamond-cut print frames
 - drag loupe for precise border placement
+- loupe renders the same pan and tilt as the main card and follows the selected edge angle
+- two-row control groups prevent labels from crossing button boundaries
 - per-card horizontal and vertical image positioning
 - desktop controls remain beside the card instead of below it
 - direct layer selection with larger draggable hit areas

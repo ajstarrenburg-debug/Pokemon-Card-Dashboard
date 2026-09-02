@@ -12,7 +12,7 @@
 * { box-sizing: border-box; }
 html, body { margin: 0; background: var(--bg); color: var(--text); font-family: Inter, system-ui, -apple-system, sans-serif; overflow: visible; }
 button, select, textarea, input { font: inherit; }
-button, select { background: #242b36; color: var(--text); border: 1px solid #3a4555; border-radius: 9px; padding: 9px 12px; cursor: pointer; }
+button, select { background: #242b36; color: var(--text); border: 1px solid #3a4555; border-radius: 9px; padding: 9px 12px; cursor: pointer; max-width: 100%; line-height: 1.2; }
 button:hover { filter: brightness(1.08); }
 button:disabled { cursor: not-allowed; opacity: .38; filter: none; }
 button.primary { background: #176c48; border-color: #258a62; }
@@ -71,8 +71,8 @@ h2 { margin: 0 0 4px; font-size: 21px; }
 .tiltHead { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
 .tiltHead output { color: var(--tilt); font-size: 18px; font-weight: 850; font-variant-numeric: tabular-nums; }
 .tiltPanel input[type=range] { width: 100%; margin: 12px 0 8px; accent-color: var(--tilt); }
-.tiltButtons { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
-.tiltButtons button { padding: 8px 5px; font-size: 12px; }
+.tiltButtons { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
+.tiltButtons button { padding: 8px 7px; min-width: 0; min-height: 42px; font-size: 12px; white-space: normal; }
 .tiltButtons button.activeTilt { border-color: var(--tilt); color: var(--tilt); box-shadow: 0 0 0 1px var(--tilt) inset; }
 .panGrid { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; margin-top: 12px; padding-top: 11px; border-top: 1px solid #2e3949; }
 .panControl label { display: flex; justify-content: space-between; gap: 8px; font-size: 12px; color: var(--muted); }
@@ -80,8 +80,8 @@ h2 { margin: 0 0 4px; font-size: 21px; }
 .panControl input[type=range] { margin: 7px 0 4px; accent-color: #8ea2bb; }
 .panReset { grid-column: 1 / -1; width: 100%; margin-top: 7px; padding: 8px 9px; font-size: 12px; }
 .tiltHint { color: var(--muted); font-size: 12px; line-height: 1.4; margin-top: 8px; }
-.layers { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 7px; margin: 12px 0 8px; }
-.layers button { padding: 10px 5px; font-size: 12px; font-weight: 800; }
+.layers { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px; margin: 12px 0 8px; }
+.layers button { padding: 10px 8px; min-width: 0; min-height: 44px; font-size: 12px; font-weight: 800; white-space: normal; }
 .layers button.activeTilt { border-color: var(--tilt); box-shadow: 0 0 0 1px var(--tilt) inset; color: var(--tilt); }
 .layers button.activeOuter { border-color: var(--cyan); box-shadow: 0 0 0 1px var(--cyan) inset; color: var(--cyan); }
 .layers button.activeInner { border-color: var(--mag); box-shadow: 0 0 0 1px var(--mag) inset; color: var(--mag); }
@@ -95,7 +95,9 @@ h2 { margin: 0 0 4px; font-size: 21px; }
 .loupePanel { background: #0a0e14; border: 1px solid #344052; border-radius: 10px; padding: 8px; margin: 10px 0; }
 .loupeHead { display: flex; justify-content: space-between; gap: 10px; font-size: 12px; color: var(--muted); margin-bottom: 6px; }
 .loupeHead b { color: #fff; }
-#loupe { width: 100%; height: 116px; display: block; background: #05070a; border-radius: 7px; image-rendering: auto; }
+.loupeHead span { text-align: right; }
+#loupe { width: 100%; height: auto; aspect-ratio: 2 / 1; display: block; background: #05070a; border-radius: 7px; image-rendering: auto; }
+.loupeRule { color: var(--muted); font-size: 11px; line-height: 1.35; margin-top: 6px; }
 .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 14px 0; }
 .metric { background: #10141b; border-radius: 10px; padding: 10px; min-width: 0; }
 .metric b { font-size: 18px; font-variant-numeric: tabular-nums; }
@@ -118,5 +120,4 @@ textarea { width: 100%; height: 72px; background: #10141b; color: white; border:
   .stage { width: min(630px, 100%); }
   header { padding: 9px 10px; }
   .side { padding: 12px; position: static; }
-  #loupe { height: 132px; }
 }

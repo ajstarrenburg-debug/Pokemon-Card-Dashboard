@@ -56,7 +56,7 @@ for (const entry of Object.entries(engines)) {
             }
           };
           image.onerror=function() { resolve(false); };
-          image.src='cards/'+cardId+'.jpg?matrix=12';
+          image.src='cards/'+cardId+'.jpg?matrix=13';
         });
       }));
       return checks.every(Boolean);
@@ -77,6 +77,19 @@ for (const entry of Object.entries(engines)) {
         tiltActive:document.querySelector('#showTilt').classList.contains('activeTilt'),
         controlsBesideCard:side.left>=card.right&&Math.abs(side.top-card.top)<24
       };
+    });
+
+    result.buttonLayout=await frame.evaluate(function() {
+      const groups=['.layers','.tiltButtons'].map(function(selector) {
+        const buttons=Array.from(document.querySelectorAll(selector+' button'));
+        return {
+          rows:new Set(buttons.map(function(button) { return Math.round(button.getBoundingClientRect().top); })).size,
+          noOverflow:buttons.every(function(button) {
+            return button.scrollWidth<=button.clientWidth+1&&button.scrollHeight<=button.clientHeight+1;
+          })
+        };
+      });
+      return {layers:groups[0],tilt:groups[1]};
     });
 
     await frame.locator('#showBoth').click();
@@ -203,6 +216,7 @@ for (const entry of Object.entries(engines)) {
     assert(result.initial.sideHandles===8,'visible side handles missing');
     assert(result.initial.tiltActive,'tilt should be first step');
     assert(result.initial.controlsBesideCard,'controls should stay beside card on desktop');
+    assert(result.buttonLayout.layers.rows===2&&result.buttonLayout.tilt.rows===2&&result.buttonLayout.layers.noOverflow&&result.buttonLayout.tilt.noOverflow,'button text overlaps or four-button row did not wrap');
     assert(result.iframeHeight>=700&&result.iframeHeight<=2600,'review iframe height is unstable');
     assert(result.measurements.segments===12&&result.measurements.outerPoints===12&&result.measurements.innerPoints===12&&result.measurements.labels===12,'measurement overlay is incomplete');
     assert(result.measurements.numericCells===12,'millimeter table is incomplete');
@@ -211,7 +225,7 @@ for (const entry of Object.entries(engines)) {
     assert(result.directInnerDrag.moved&&result.directInnerDrag.selected&&result.directInnerDrag.source==='Gold-correctie'&&result.directInnerDrag.loupeReady==='1','direct magenta drag or loupe failed');
     assert(result.quadMoved,'independent corner movement failed');
     assert(result.measureToggle.pressed==='false'&&result.measureToggle.children===0,'measurement toggle failed');
-    assert(result.export.filename.includes('v12')&&result.export.version==='centering-gold-v12'&&result.export.schema==='border-keypoints-v1'&&result.export.rule==='centerline_on_visual_transition','v0.12 export metadata failed');
+    assert(result.export.filename.includes('v13')&&result.export.version==='centering-gold-v13'&&result.export.schema==='border-keypoints-v1'&&result.export.rule==='centerline_on_visual_transition','v0.13 export metadata failed');
     assert(result.export.outerPoints===12&&result.export.innerPoints===12,'student keypoints missing from export');
     assert(result.reference.innerHidden&&result.reference.innerButtonDisabled&&result.reference.measureButtonDisabled&&result.reference.measureChildren===0,'reference route failed');
     assert(result.scroll.max>0&&result.scroll.after>0,'dashboard does not scroll');

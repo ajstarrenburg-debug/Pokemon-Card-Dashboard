@@ -96,7 +96,7 @@ jobs:
                     } catch { resolve(false); }
                   };
                   image.onerror = () => resolve(false);
-                  image.src = `cards/${cardId}.jpg?matrix=8`;
+                  image.src = `cards/${cardId}.jpg?matrix=10`;
                 })));
                 return checks.every(Boolean);
               }, ids);
@@ -107,7 +107,9 @@ jobs:
                 natural: [document.querySelector('#img')?.naturalWidth, document.querySelector('#img')?.naturalHeight],
                 imageStatusHidden: document.querySelector('#imageStatus')?.hidden,
                 outerVisible: getComputedStyle(document.querySelector('#outerGroup')).opacity,
-                innerVisible: getComputedStyle(document.querySelector('#innerGroup')).opacity
+                innerVisible: getComputedStyle(document.querySelector('#innerGroup')).opacity,
+                levelGuidesVisible: getComputedStyle(document.querySelector('#levelGuide')).display !== 'none',
+                tiltModeActive: document.querySelector('#showTilt')?.classList.contains('activeTilt')
               }));
 
               await frame.locator('#tilt').evaluate(element => {
@@ -124,11 +126,20 @@ jobs:
               await frame.locator('#tiltAI').click();
               result.tiltReset = await frame.locator('#img').evaluate(element => element.style.transform);
 
-              await frame.locator('#showInner').click();
-              result.innerOpacity = await frame.locator('#innerGroup').evaluate(element => getComputedStyle(element).opacity);
+              await frame.locator('#showOuter').click();
+              const innerBeforeX = Number(await frame.locator('#innerRect').getAttribute('x'));
+              const innerHandle = frame.locator('#ihL');
+              const innerBox = await innerHandle.boundingBox();
+              if (!innerBox) throw new Error('inner drag handle missing');
+              await page.mouse.move(innerBox.x + innerBox.width / 2, innerBox.y + innerBox.height / 2);
+              await page.mouse.down();
+              await page.mouse.move(innerBox.x + innerBox.width / 2 + 12, innerBox.y + innerBox.height / 2, { steps: 4 });
+              await page.mouse.up();
+              const innerAfterX = Number(await frame.locator('#innerRect').getAttribute('x'));
+              result.innerDragMoved = innerAfterX > innerBeforeX + 2;
+              result.innerAutoSelected = await frame.locator('#showInner').evaluate(element => element.classList.contains('activeInner'));
 
               const beforeX = Number(await frame.locator('#outerRect').getAttribute('x'));
-              await frame.locator('#showOuter').click();
               const handle = frame.locator('#ohL');
               const box = await handle.boundingBox();
               if (!box) throw new Error('outer drag handle missing');
@@ -138,6 +149,14 @@ jobs:
               await page.mouse.up();
               const afterX = Number(await frame.locator('#outerRect').getAttribute('x'));
               result.dragMoved = afterX > beforeX + 2;
+              result.outerAutoSelected = await frame.locator('#showOuter').evaluate(element => element.classList.contains('activeOuter'));
+
+              await frame.locator('#mode').selectOption('reference_required');
+              result.referenceMode = await frame.evaluate(() => ({
+                innerHidden: getComputedStyle(document.querySelector('#innerGroup')).display === 'none',
+                buttonDisabled: document.querySelector('#showInner').disabled
+              }));
+              await frame.locator('#mode').selectOption('inner_edge');
 
               await frame.locator('#next').click();
               await frame.waitForFunction(() => document.querySelector('#img')?.getAttribute('src')?.includes('A-B12-P5'));
@@ -158,12 +177,18 @@ jobs:
                 result.initial.natural[0] === 630 &&
                 result.initial.natural[1] === 880 &&
                 result.initial.imageStatusHidden === true &&
+                result.initial.levelGuidesVisible &&
+                result.initial.tiltModeActive &&
                 result.tiltTransform === 'rotate(1.25deg)' &&
                 result.tiltValue?.includes('1,25') &&
                 result.pivotMoved &&
                 result.tiltReset === 'rotate(0deg)' &&
-                result.innerOpacity === '1' &&
+                result.innerDragMoved &&
+                result.innerAutoSelected &&
                 result.dragMoved &&
+                result.outerAutoSelected &&
+                result.referenceMode.innerHidden &&
+                result.referenceMode.buttonDisabled &&
                 result.nextCard?.includes('A-B12-P5') &&
                 result.scroll.max > 0 &&
                 result.scroll.after > 0 &&

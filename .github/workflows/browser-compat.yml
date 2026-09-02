@@ -110,6 +110,20 @@ jobs:
                 innerVisible: getComputedStyle(document.querySelector('#innerGroup')).opacity
               }));
 
+              await frame.locator('#tilt').evaluate(element => {
+                element.value = '1.25';
+                element.dispatchEvent(new Event('input', { bubbles: true }));
+              });
+              result.tiltTransform = await frame.locator('#img').evaluate(element => element.style.transform);
+              result.tiltValue = await frame.locator('#tiltValue').textContent();
+              await frame.locator('#pickPivot').click();
+              await frame.locator('#svg').click({ position: { x: 185, y: 260 } });
+              result.pivotMoved = await frame.locator('#pivotDot').evaluate(element =>
+                Number(element.getAttribute('cx')) !== 315 && Number(element.getAttribute('cy')) !== 440
+              );
+              await frame.locator('#tiltAI').click();
+              result.tiltReset = await frame.locator('#img').evaluate(element => element.style.transform);
+
               await frame.locator('#showInner').click();
               result.innerOpacity = await frame.locator('#innerGroup').evaluate(element => getComputedStyle(element).opacity);
 
@@ -144,6 +158,10 @@ jobs:
                 result.initial.natural[0] === 630 &&
                 result.initial.natural[1] === 880 &&
                 result.initial.imageStatusHidden === true &&
+                result.tiltTransform === 'rotate(1.25deg)' &&
+                result.tiltValue?.includes('1,25') &&
+                result.pivotMoved &&
+                result.tiltReset === 'rotate(0deg)' &&
                 result.innerOpacity === '1' &&
                 result.dragMoved &&
                 result.nextCard?.includes('A-B12-P5') &&

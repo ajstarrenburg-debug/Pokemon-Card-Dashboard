@@ -6,6 +6,7 @@ Development dashboard for Pokemon card scan QA, centering and AI-assisted inner-
 - AI Learning -> Inner Review
 - 16-card Gold Set v0.4
 - draggable outer and inner edges/corners
+- AI-first tilt correction with a selectable fixed rotation point
 - one baseline JPEG per review card (no sprite/base64 loader)
 - browser autosave
 - JSON export for confirmed labels

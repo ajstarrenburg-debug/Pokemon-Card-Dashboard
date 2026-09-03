@@ -20,7 +20,9 @@ TARGETS = [
     ("A-B12-P5", 12, 5, (10, 90, 520, 723)),
     ("A-B13-P1", 13, 1, (190, 80, 505, 702)),
     ("A-B14-P6", 14, 6, (15, 105, 500, 695)),
-    ("A-B03-P4", 3, 4, (80, 125, 480, 667)),
+    # Keep extra toploader/background around Lapras.  The previous crop ended
+    # exactly on the card's right edge and made a complete card look clipped.
+    ("A-B03-P4", 3, 4, (70, 120, 540, 674)),
     ("A-B07-P4", 7, 4, (100, 115, 505, 702)),
     ("A-B10-P6", 10, 6, (140, 115, 505, 702)),
     ("A-B16-P5", 16, 5, (55, 70, 520, 723)),
@@ -65,7 +67,15 @@ def main() -> None:
     for card_id, batch, position, (x, y, width, height) in TARGETS:
         cell = working_cell(batch, position)
         card = cell.crop((x, y, x + width, y + height))
-        card = card.resize((630, 880), Image.Resampling.LANCZOS)
+        if card_id == "A-B03-P4":
+            # Preserve the wider source crop without stretching it.  Center it
+            # on a fixed review canvas so all four physical edges remain visible.
+            card.thumbnail((630, 880), Image.Resampling.LANCZOS)
+            canvas = Image.new("RGB", (630, 880), (247, 247, 247))
+            canvas.paste(card, ((630 - card.width) // 2, (880 - card.height) // 2))
+            card = canvas
+        else:
+            card = card.resize((630, 880), Image.Resampling.LANCZOS)
         card.save(
             OUTPUT / f"{card_id}.jpg",
             format="JPEG",

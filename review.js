@@ -3,7 +3,7 @@ const ITEMS = [
   {card_id:'A-B12-P5',name:'Pikachu',layout:'standard_bordered',mode:'inner_edge',outer_status:'TRANSFER_MED',inner_status:'MULTIVIEW_HIGH',L:34,R:586,T:17,B:852,OL:20,OR:590,OT:30,OB:850,semantic_warning:false},
   {card_id:'A-B13-P1',name:'Blastoise',layout:'standard_bordered',mode:'inner_edge',outer_status:'TRANSFER_HIGH',inner_status:'MULTIVIEW_HIGH',L:29,R:589,T:18,B:850,OL:20,OR:600,OT:35,OB:850,semantic_warning:false},
   {card_id:'A-B14-P6',name:'Gengar',layout:'standard_bordered',mode:'inner_edge',outer_status:'TRANSFER_HIGH',inner_status:'MULTIVIEW_HIGH',L:29,R:589,T:15,B:858,OL:20,OR:590,OT:35,OB:850,semantic_warning:false},
-  {card_id:'A-B03-P4',name:"Misty's Lapras",layout:'full_art_borderless',mode:'reference_required',outer_status:'TRANSFER_HIGH',inner_status:'MULTIVIEW_MED',L:31,R:598,T:15,B:851,OL:25,OR:610,OT:25,OB:850,semantic_warning:false},
+  {card_id:'A-B03-P4',name:"Misty's Lapras",layout:'illustration_bordered',mode:'inner_edge',outer_status:'TRANSFER_HIGH',inner_status:'MULTIVIEW_MED',L:46,R:585,T:50,B:829,OL:58,OR:572,OT:104,OB:827,semantic_warning:false,seed_revision:14},
   {card_id:'A-B07-P4',name:'Conkeldurr V',layout:'full_art_borderless',mode:'reference_required',outer_status:'TRANSFER_HIGH',inner_status:'MULTIVIEW_MED',L:31,R:596,T:17,B:851,OL:25,OR:600,OT:30,OB:850,semantic_warning:false},
   {card_id:'A-B10-P6',name:'Mega Excadrill ex',layout:'full_art_borderless',mode:'reference_required',outer_status:'TRANSFER_HIGH',inner_status:'MULTIVIEW_MED',L:35,R:592,T:17,B:850,OL:15,OR:590,OT:35,OB:850,semantic_warning:false},
   {card_id:'A-B16-P5',name:'Mega Greninja ex',layout:'full_art_borderless',mode:'reference_required',outer_status:'TRANSFER_HIGH',inner_status:'MULTIVIEW_MED',L:31,R:596,T:17,B:850,OL:20,OR:595,OT:35,OB:850,semantic_warning:false},
@@ -21,8 +21,8 @@ const WIDTH = 630;
 const HEIGHT = 880;
 const CARD_MM = {width:63, height:88};
 const SAMPLE_T = [0.25, 0.5, 0.75];
-const KEY = 'pokemon_centering_gold_v13';
-const LEGACY_KEYS = ['pokemon_centering_gold_v12','pokemon_centering_gold_v11','pokemon_centering_gold_v10','pokemon_centering_gold_v09','pokemon_centering_gold_v08'];
+const KEY = 'pokemon_centering_gold_v14';
+const LEGACY_KEYS = ['pokemon_centering_gold_v13','pokemon_centering_gold_v12','pokemon_centering_gold_v11','pokemon_centering_gold_v10','pokemon_centering_gold_v09','pokemon_centering_gold_v08'];
 const SVG_NS = 'http://www.w3.org/2000/svg';
 const $ = function(id) { return document.getElementById(id); };
 let idx = 0;
@@ -123,20 +123,23 @@ function stateFor(item) {
   const outerAI = outerSeed(item);
   const innerAI = innerSeed(item);
   if (existing) {
+    const resetForNewAsset = Number(item.seed_revision || 0) > Number(existing.seed_revision || 0);
     const legacyInner = existing.inner || existing.box;
     return {
       ...existing,
       card_id:item.card_id,
-      outer:normalizeQuad(existing.outer,outerAI),
-      inner:normalizeQuad(legacyInner,innerAI),
-      ai_outer:normalizeQuad(existing.ai_outer,outerAI),
-      ai_inner:normalizeQuad(existing.ai_inner,innerAI),
+      outer:resetForNewAsset ? cloneQuad(outerAI) : normalizeQuad(existing.outer,outerAI),
+      inner:resetForNewAsset ? cloneQuad(innerAI) : normalizeQuad(legacyInner,innerAI),
+      ai_outer:resetForNewAsset ? cloneQuad(outerAI) : normalizeQuad(existing.ai_outer,outerAI),
+      ai_inner:resetForNewAsset ? cloneQuad(innerAI) : normalizeQuad(existing.ai_inner,innerAI),
       tilt:Number.isFinite(Number(existing.tilt)) ? Number(existing.tilt) : aiTilt(item),
       tilt_ai:Number.isFinite(Number(existing.tilt_ai)) ? Number(existing.tilt_ai) : aiTilt(item),
       pivot:existing.pivot ? point(existing.pivot.x,existing.pivot.y) : pivotSeed(),
       pan:existing.pan ? point(existing.pan.x,existing.pan.y) : point(existing.pan_x || 0,existing.pan_y || 0),
-      edits:{...editSeed(),...(existing.edits || {})},
-      mode:existing.mode || item.mode
+      edits:resetForNewAsset ? editSeed() : {...editSeed(),...(existing.edits || {})},
+      mode:resetForNewAsset ? item.mode : (existing.mode || item.mode),
+      confirmed:resetForNewAsset ? false : Boolean(existing.confirmed),
+      seed_revision:item.seed_revision || existing.seed_revision || 13
     };
   }
   return {
@@ -152,7 +155,8 @@ function stateFor(item) {
     pan:panSeed(),
     edits:editSeed(),
     note:'',
-    confirmed:false
+    confirmed:false,
+    seed_revision:item.seed_revision || 14
   };
 }
 
@@ -458,6 +462,10 @@ function applyLayerView(measurements) {
   const innerGroup = $('innerGroup');
   const canInner = cur.mode === 'inner_edge';
   if (!canInner && activeLayer === 'inner') activeLayer = 'outer';
+  if (!canInner && loupeTarget && loupeTarget.layer === 'inner') {
+    loupeTarget={layer:'outer',key:'L',point:sidePoint(cur.outer,'L',.5)};
+    $('loupeLabel').textContent='Cyaan · L';
+  }
   $('showTilt').className = activeLayer === 'tilt' ? 'activeTilt' : '';
   $('showOuter').className = activeLayer === 'outer' ? 'activeOuter' : '';
   $('showInner').className = activeLayer === 'inner' ? 'activeInner' : '';
@@ -589,7 +597,7 @@ function focusSide(layer,side) {
 function loadCardImage(item) {
   const img=$('img');
   const status=$('imageStatus');
-  const src='cards/'+item.card_id+'.jpg?v=13';
+  const src='cards/'+item.card_id+'.jpg?v=14';
   img.dataset.cardId=item.card_id;
   img.alt=item.card_id+' · '+item.name;
   status.hidden=false;
@@ -603,7 +611,7 @@ function loadCardImage(item) {
     notifyHeight();
     const next=ITEMS[(idx+1)%ITEMS.length];
     const preload=new Image();
-    preload.src='cards/'+next.card_id+'.jpg?v=13';
+    preload.src='cards/'+next.card_id+'.jpg?v=14';
   };
   img.onerror=function() {
     if(img.dataset.cardId!==item.card_id)return;
@@ -646,6 +654,9 @@ function render() {
   updateTilt();
   updateGeom();
   notifyHeight();
+  try {
+    parent.postMessage({type:'review-card-change',cardId:item.card_id},'*');
+  } catch (_) {}
 }
 
 function persist(confirmed) {
@@ -934,7 +945,7 @@ $('toggleMeasures').onclick=function() {
 $('mode').onchange=function() {
   remember();
   cur.mode=$('mode').value;
-  if(cur.mode!=='inner_edge'&&activeLayer==='inner')activeLayer='outer';
+  if(cur.mode!=='inner_edge'&&(activeLayer==='inner'||activeLayer==='both'))activeLayer='outer';
   updateWarning(ITEMS[idx]);
   updateGeom();
   notifyHeight();
@@ -1017,7 +1028,7 @@ $('export').onclick=function() {
     };
   });
   const payload={
-    version:'centering-gold-v13',
+    version:'centering-gold-v14',
     schema:'border-keypoints-v1',
     created:new Date().toISOString(),
     measurement_rule:'centerline_on_visual_transition',
@@ -1027,10 +1038,21 @@ $('export').onclick=function() {
   const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'});
   const anchor=document.createElement('a');
   anchor.href=URL.createObjectURL(blob);
-  anchor.download='Pokemon_Centering_Gold_v13_labels.json';
+  anchor.download='Pokemon_Centering_Gold_v14_labels.json';
   anchor.click();
   setTimeout(function() { URL.revokeObjectURL(anchor.href); },1000);
 };
+
+window.addEventListener('message',function(event) {
+  if(window.parent!==window&&event.source!==window.parent)return;
+  if(event.data?.type!=='review-select-card')return;
+  const nextIndex=ITEMS.findIndex(function(item) { return item.card_id===event.data.cardId; });
+  if(nextIndex<0||nextIndex===idx)return;
+  persist(false);
+  idx=nextIndex;
+  render();
+  window.scrollTo({top:0,behavior:'auto'});
+});
 
 window.addEventListener('resize',notifyHeight);
 render();

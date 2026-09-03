@@ -13,7 +13,7 @@ the reference/template route instead of an invented inner border.
 
 Prepare a model-ready dataset with:
 
-    npm run student:prepare -- Pokemon_Centering_Gold_v12_labels.json training/student-dataset-v1.json
+    npm run student:prepare -- Pokemon_Centering_Gold_v14_labels.json training/student-dataset-v1.json
 
 The generated file can feed the next student-model training run. The UI and export use
 the same measurement convention: the mathematical centerline sits on the visual

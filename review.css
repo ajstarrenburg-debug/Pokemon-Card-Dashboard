@@ -32,8 +32,8 @@ main { display: grid; grid-template-columns: minmax(340px, 700px) minmax(330px, 
 .levelGuide { pointer-events: none; }
 .levelGuide line { stroke: var(--cyan); stroke-width: 1; opacity: .72; vector-effect: non-scaling-stroke; stroke-dasharray: 12 8; }
 .guideHalo, .guideCore { fill: none; pointer-events: none; vector-effect: non-scaling-stroke; stroke-linejoin: round; }
-.outerHalo { stroke: var(--cyan); stroke-width: 5; stroke-dasharray: 10 7; opacity: .52; }
-.innerHalo { stroke: var(--mag); stroke-width: 5; stroke-dasharray: 6 5; opacity: .55; }
+.outerHalo { stroke: var(--cyan); stroke-width: 2.5; stroke-dasharray: 12 14; opacity: .34; }
+.innerHalo { stroke: var(--mag); stroke-width: 2.5; stroke-dasharray: 10 13; opacity: .38; }
 .outerCore { stroke: #d9fbff; stroke-width: 1; }
 .innerCore { stroke: #fff0fc; stroke-width: 1; }
 .hit { stroke: transparent; stroke-width: 38; pointer-events: stroke; vector-effect: non-scaling-stroke; cursor: grab; touch-action: none; }
@@ -41,8 +41,8 @@ main { display: grid; grid-template-columns: minmax(340px, 700px) minmax(330px, 
 .outerHandle { stroke: var(--cyan); stroke-width: 3; }
 .innerHandle { stroke: var(--mag); stroke-width: 3; }
 .sideHandle { stroke-width: 3; }
-#outerGroup.hovered .outerHalo, #outerGroup.selected .outerHalo { opacity: .86; filter: drop-shadow(0 0 3px var(--cyan)); }
-#innerGroup.hovered .innerHalo, #innerGroup.selected .innerHalo { opacity: .9; filter: drop-shadow(0 0 3px var(--mag)); }
+#outerGroup.hovered .outerHalo, #outerGroup.selected .outerHalo { opacity: .6; filter: drop-shadow(0 0 1px var(--cyan)); }
+#innerGroup.hovered .innerHalo, #innerGroup.selected .innerHalo { opacity: .64; filter: drop-shadow(0 0 1px var(--mag)); }
 #outerGroup.tiltLocked .cornerHandle, #outerGroup.tiltLocked .sideHandle { opacity: 0; pointer-events: none; }
 .measurements { pointer-events: none; }
 .measureSegment { stroke: #f4f7fb; stroke-width: 1; opacity: .85; vector-effect: non-scaling-stroke; }

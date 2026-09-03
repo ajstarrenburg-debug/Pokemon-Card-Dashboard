@@ -28,7 +28,7 @@ function validateTarget(target,cardId) {
 }
 
 export function buildDataset(payload) {
-  assert(payload && payload.schema === EXPECTED_SCHEMA,'Input is not a v0.12 keypoint export');
+  assert(payload && payload.schema === EXPECTED_SCHEMA,'Input is not a supported keypoint export');
   assert(payload.measurement_rule === 'centerline_on_visual_transition','Input uses the wrong measurement rule');
   assert(Array.isArray(payload.labels),'Input labels are missing');
   const examples=[];
@@ -89,7 +89,7 @@ async function main() {
     selfTest();
     return;
   }
-  assert(args[0],'Usage: npm run student:prepare -- <Gold-v12.json> [output.json]');
+  assert(args[0],'Usage: npm run student:prepare -- <Gold-export.json> [output.json]');
   const inputPath=args[0];
   const outputPath=args[1] || 'training/student-dataset-v1.json';
   const payload=JSON.parse(await readFile(inputPath,'utf8'));

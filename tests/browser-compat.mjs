@@ -14,34 +14,77 @@ function assert(condition,message) {
   if (!condition) throw new Error(message);
 }
 
-for (const entry of Object.entries(engines)) {
-  const name=entry[0];
-  const engine=entry[1];
+async function waitForCard(frame,cardId) {
+  await frame.waitForFunction(function(expectedId) {
+    const image=document.querySelector('#img');
+    return document.querySelector('#title')?.textContent.startsWith(expectedId)
+      && image?.dataset.cardId===expectedId
+      && image.complete
+      && image.naturalWidth===630
+      && image.naturalHeight===880;
+  },cardId);
+}
+
+for (const [name,engine] of Object.entries(engines)) {
   let browser;
   const result=results[name]={pass:false,errors:[]};
   try {
     browser=await engine.launch({headless:true});
     const context=await browser.newContext({viewport:{width:1440,height:900},acceptDownloads:true});
     const page=await context.newPage();
-    page.on('console',function(message) {
-      if(message.type()==='error')result.errors.push(message.text());
-    });
-    page.on('pageerror',function(error) {
-      result.errors.push(String(error));
-    });
+    page.on('console',message=>{if(message.type()==='error')result.errors.push(message.text())});
+    page.on('pageerror',error=>result.errors.push(String(error)));
     await page.goto('http://127.0.0.1:4173/',{waitUntil:'load'});
-    const frame=page.frames().find(function(candidate) {
-      return candidate.url().includes('/review.html');
-    });
+    const frame=page.frames().find(candidate=>candidate.url().includes('/review.html'));
     assert(frame,'review iframe missing');
-    await frame.waitForFunction(function() {
-      const image=document.querySelector('#img');
-      return image && image.complete && image.naturalWidth===630 && image.naturalHeight===880;
-    });
+    await waitForCard(frame,'A-B03-P5');
     await page.waitForTimeout(250);
-    result.iframeHeight=await page.locator('#reviewFrame').evaluate(function(element) {
-      return element.getBoundingClientRect().height;
+
+    result.navigation=await page.evaluate(function() {
+      const disabled=Array.from(document.querySelectorAll('.nav button[disabled]'));
+      const activeLinks=Array.from(document.querySelectorAll('.nav a[href]'));
+      return {
+        disabledCount:disabled.length,
+        allDisabledLabeled:disabled.every(button=>button.textContent.includes('Binnenkort')),
+        enabledDeadButtons:document.querySelectorAll('.nav button:not([disabled])').length,
+        activeLinks:activeLinks.map(link=>link.getAttribute('href')),
+        queueButtons:document.querySelectorAll('.queueCard[data-card-id]').length
+      };
     });
+
+    result.queueNavigation=[];
+    for (const cardId of cardIds) {
+      await page.locator('.queueCard[data-card-id="'+cardId+'"]').click();
+      await waitForCard(frame,cardId);
+      const state=await page.evaluate(function(expectedId) {
+        const active=document.querySelectorAll('.queueCard.active');
+        return active.length===1
+          && active[0].dataset.cardId===expectedId
+          && active[0].getAttribute('aria-current')==='true';
+      },cardId);
+      result.queueNavigation.push({cardId,state});
+    }
+
+    await page.locator('.queueCard[data-card-id="A-B03-P4"]').click();
+    await waitForCard(frame,'A-B03-P4');
+    result.lapras=await frame.evaluate(function() {
+      const points=document.querySelector('#outerRect').getAttribute('points').split(' ').map(pair=>pair.split(',').map(Number));
+      const xs=points.map(pair=>pair[0]);
+      const ys=points.map(pair=>pair[1]);
+      return {
+        title:document.querySelector('#title').textContent,
+        mode:document.querySelector('#mode').value,
+        layout:document.querySelector('#meta').textContent,
+        innerButtonEnabled:!document.querySelector('#showInner').disabled,
+        innerVisible:getComputedStyle(document.querySelector('#innerGroup')).display!=='none',
+        outerBox:{left:Math.min(...xs),right:Math.max(...xs),top:Math.min(...ys),bottom:Math.max(...ys)}
+      };
+    });
+    await page.screenshot({path:'browser-'+name+'-lapras.png',fullPage:true});
+
+    await page.locator('.queueCard[data-card-id="A-B03-P5"]').click();
+    await waitForCard(frame,'A-B03-P5');
+    result.iframeHeight=await page.locator('#reviewFrame').evaluate(element=>element.getBoundingClientRect().height);
 
     result.allImages=await frame.evaluate(async function(ids) {
       const checks=await Promise.all(ids.map(function(cardId) {
@@ -56,7 +99,7 @@ for (const entry of Object.entries(engines)) {
             }
           };
           image.onerror=function() { resolve(false); };
-          image.src='cards/'+cardId+'.jpg?matrix=13';
+          image.src='cards/'+cardId+'.jpg?matrix=14';
         });
       }));
       return checks.every(Boolean);
@@ -71,8 +114,11 @@ for (const entry of Object.entries(engines)) {
         instruction:document.querySelector('#instruction').textContent,
         outerCoreWidth:getComputedStyle(document.querySelector('#outerRect')).strokeWidth,
         innerCoreWidth:getComputedStyle(document.querySelector('#innerRect')).strokeWidth,
+        outerHaloWidth:getComputedStyle(document.querySelector('#outerHalo')).strokeWidth,
+        innerHaloWidth:getComputedStyle(document.querySelector('#innerHalo')).strokeWidth,
         outerHaloDash:getComputedStyle(document.querySelector('#outerHalo')).strokeDasharray,
         innerHaloDash:getComputedStyle(document.querySelector('#innerHalo')).strokeDasharray,
+        hitWidth:getComputedStyle(document.querySelector('#ihL')).strokeWidth,
         sideHandles:document.querySelectorAll('.sideHandle').length,
         tiltActive:document.querySelector('#showTilt').classList.contains('activeTilt'),
         controlsBesideCard:side.left>=card.right&&Math.abs(side.top-card.top)<24
@@ -83,10 +129,8 @@ for (const entry of Object.entries(engines)) {
       const groups=['.layers','.tiltButtons'].map(function(selector) {
         const buttons=Array.from(document.querySelectorAll(selector+' button'));
         return {
-          rows:new Set(buttons.map(function(button) { return Math.round(button.getBoundingClientRect().top); })).size,
-          noOverflow:buttons.every(function(button) {
-            return button.scrollWidth<=button.clientWidth+1&&button.scrollHeight<=button.clientHeight+1;
-          })
+          rows:new Set(buttons.map(button=>Math.round(button.getBoundingClientRect().top))).size,
+          noOverflow:buttons.every(button=>button.scrollWidth<=button.clientWidth+1&&button.scrollHeight<=button.clientHeight+1)
         };
       });
       return {layers:groups[0],tilt:groups[1]};
@@ -99,9 +143,7 @@ for (const entry of Object.entries(engines)) {
         outerPoints:document.querySelectorAll('#measureGroup .measureOuterPoint').length,
         innerPoints:document.querySelectorAll('#measureGroup .measureInnerPoint').length,
         labels:document.querySelectorAll('#measureGroup .measureLabel').length,
-        numericCells:Array.from(document.querySelectorAll('.measureTable tbody td:not(:first-child)')).filter(function(cell) {
-          return /^\d+,\d{2}$/.test(cell.textContent);
-        }).length,
+        numericCells:Array.from(document.querySelectorAll('.measureTable tbody td:not(:first-child)')).filter(cell=>/^\d+,\d{2}$/.test(cell.textContent)).length,
         lr:document.querySelector('#lr').textContent,
         tb:document.querySelector('#tb').textContent
       };
@@ -181,7 +223,7 @@ for (const entry of Object.entries(engines)) {
     const download=await downloadPromise;
     const downloadPath=await download.path();
     const exportPayload=JSON.parse(await readFile(downloadPath,'utf8'));
-    const exported=exportPayload.labels.find(function(label) { return label.card_id==='A-B03-P5'; });
+    const exported=exportPayload.labels.find(label=>label.card_id==='A-B03-P5');
     result.export={
       filename:download.suggestedFilename(),
       version:exportPayload.version,
@@ -197,22 +239,49 @@ for (const entry of Object.entries(engines)) {
         innerHidden:getComputedStyle(document.querySelector('#innerGroup')).display==='none',
         innerButtonDisabled:document.querySelector('#showInner').disabled,
         measureButtonDisabled:document.querySelector('#toggleMeasures').disabled,
-        measureChildren:document.querySelector('#measureGroup').childElementCount
+        measureChildren:document.querySelector('#measureGroup').childElementCount,
+        loupeUsesOuter:document.querySelector('#loupeLabel').textContent.startsWith('Cyaan')
       };
     });
 
     result.scroll=await page.evaluate(function() {
       const before=window.scrollY;
       window.scrollTo(0,document.documentElement.scrollHeight);
-      return {before:before,after:window.scrollY,max:document.documentElement.scrollHeight-window.innerHeight};
+      return {before,after:window.scrollY,max:document.documentElement.scrollHeight-window.innerHeight};
     });
 
+    const mobile=await context.newPage();
+    mobile.on('console',message=>{if(message.type()==='error')result.errors.push('mobile: '+message.text())});
+    mobile.on('pageerror',error=>result.errors.push('mobile: '+String(error)));
+    await mobile.setViewportSize({width:390,height:844});
+    await mobile.goto('http://127.0.0.1:4173/',{waitUntil:'load'});
+    const mobileFrame=mobile.frames().find(candidate=>candidate.url().includes('/review.html'));
+    assert(mobileFrame,'mobile review iframe missing');
+    await waitForCard(mobileFrame,'A-B03-P5');
+    result.mobile={
+      dashboardNoHorizontalOverflow:await mobile.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth+1),
+      reviewNoHorizontalOverflow:await mobileFrame.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth+1),
+      buttonsNoOverflow:await mobileFrame.evaluate(()=>Array.from(document.querySelectorAll('.layers button,.tiltButtons button')).every(button=>button.scrollWidth<=button.clientWidth+1&&button.scrollHeight<=button.clientHeight+1)),
+      imageVisible:await mobileFrame.locator('#img').isVisible()
+    };
+    await mobile.screenshot({path:'browser-'+name+'-mobile.png',fullPage:true});
+    await mobile.close();
+
+    assert(result.navigation.disabledCount===10&&result.navigation.allDisabledLabeled&&result.navigation.enabledDeadButtons===0,'unfinished navigation is still presented as functional');
+    assert(result.navigation.activeLinks.length===1&&result.navigation.activeLinks[0]==='#inner-review','active Inner Review route is missing');
+    assert(result.navigation.queueButtons===16,'review queue is incomplete');
+    assert(result.queueNavigation.length===16&&result.queueNavigation.every(item=>item.state),'one or more queue cards failed to navigate/sync');
+    assert(result.lapras.title.includes('A-B03-P4')&&result.lapras.mode==='inner_edge'&&result.lapras.layout.includes('illustration bordered'),'Lapras classification failed');
+    assert(result.lapras.innerButtonEnabled&&result.lapras.innerVisible,'Lapras inner-border tool is unavailable');
+    assert(result.lapras.outerBox.left>=40&&result.lapras.outerBox.right<=590&&result.lapras.outerBox.top>=80&&result.lapras.outerBox.bottom<=840,'Lapras crop still touches the review canvas');
     assert(result.allImages,'one or more review images failed');
     assert(result.initial.title.includes('A-B03-P5'),'wrong first card');
     assert(result.initial.natural[0]===630&&result.initial.natural[1]===880,'wrong image dimensions');
     assert(result.initial.instruction.includes('1px-kernlijn'),'measurement instruction missing');
     assert(result.initial.outerCoreWidth==='1px'&&result.initial.innerCoreWidth==='1px','true centerline is not 1px');
+    assert(parseFloat(result.initial.outerHaloWidth)<=3&&parseFloat(result.initial.innerHaloWidth)<=3,'dashed guides are still too heavy');
     assert(result.initial.outerHaloDash!=='none'&&result.initial.innerHaloDash!=='none','dashed halos missing');
+    assert(parseFloat(result.initial.hitWidth)>=30,'line hit target became too small');
     assert(result.initial.sideHandles===8,'visible side handles missing');
     assert(result.initial.tiltActive,'tilt should be first step');
     assert(result.initial.controlsBesideCard,'controls should stay beside card on desktop');
@@ -225,10 +294,11 @@ for (const entry of Object.entries(engines)) {
     assert(result.directInnerDrag.moved&&result.directInnerDrag.selected&&result.directInnerDrag.source==='Gold-correctie'&&result.directInnerDrag.loupeReady==='1','direct magenta drag or loupe failed');
     assert(result.quadMoved,'independent corner movement failed');
     assert(result.measureToggle.pressed==='false'&&result.measureToggle.children===0,'measurement toggle failed');
-    assert(result.export.filename.includes('v13')&&result.export.version==='centering-gold-v13'&&result.export.schema==='border-keypoints-v1'&&result.export.rule==='centerline_on_visual_transition','v0.13 export metadata failed');
+    assert(result.export.filename.includes('v14')&&result.export.version==='centering-gold-v14'&&result.export.schema==='border-keypoints-v1'&&result.export.rule==='centerline_on_visual_transition','v0.14 export metadata failed');
     assert(result.export.outerPoints===12&&result.export.innerPoints===12,'student keypoints missing from export');
-    assert(result.reference.innerHidden&&result.reference.innerButtonDisabled&&result.reference.measureButtonDisabled&&result.reference.measureChildren===0,'reference route failed');
+    assert(result.reference.innerHidden&&result.reference.innerButtonDisabled&&result.reference.measureButtonDisabled&&result.reference.measureChildren===0&&result.reference.loupeUsesOuter,'reference route failed');
     assert(result.scroll.max>0&&result.scroll.after>0,'dashboard does not scroll');
+    assert(result.mobile.dashboardNoHorizontalOverflow&&result.mobile.reviewNoHorizontalOverflow&&result.mobile.buttonsNoOverflow&&result.mobile.imageVisible,'mobile layout failed');
     assert(result.errors.length===0,'browser errors: '+result.errors.join('; '));
     result.pass=true;
     await page.screenshot({path:'browser-'+name+'.png',fullPage:true});
@@ -240,4 +310,4 @@ for (const entry of Object.entries(engines)) {
   console.log('RESULT '+name.toUpperCase()+' '+JSON.stringify(result));
 }
 
-if (!Object.values(results).every(function(result) { return result.pass; })) process.exit(1);
+if (!Object.values(results).every(result=>result.pass)) process.exit(1);

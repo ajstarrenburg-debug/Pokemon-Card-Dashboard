@@ -24,5 +24,9 @@ Development dashboard for Pokemon card scan QA, centering and AI-assisted inner-
 - JSON export for confirmed labels
 - border-keypoints-v1 AI-student targets (12 outer + 12 inner keypoints)
 - automated Chromium, Firefox and WebKit compatibility check
+- clickable 16-card review queue with synchronized active state
+- unfinished dashboard modules are visibly disabled and labeled `Binnenkort`
+- Misty's Lapras uses a complete padded crop and a real illustration-border inner edge
+- subtle dashed viewing guides with unchanged 1 px measurement cores and large invisible drag targets
 
 The repository contains the webapp/development assets only. Original high-resolution collection scans are intentionally not stored here.

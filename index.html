@@ -32,12 +32,12 @@
    <button class="navItem" type="button" disabled><span>Market / sales</span><small class="soon">Binnenkort</small></button>
   </nav>
   <div class="navStatus">Inner Review is nu de actieve beoordelingsmodule. De overige onderdelen zijn bewust uitgeschakeld totdat ze gebouwd zijn.</div>
-  <div class="foot">v0.14 review release<br>16 losse kaartbeelden</div>
+  <div class="foot">v0.15 veilige meetmodus-migratie<br>16 losse kaartbeelden</div>
  </aside>
  <section class="main">
   <header class="top"><div class="title">AI Learning · Inner Review<small>Gold Set v0.4 · 16 geselecteerde kaarten</small></div><div class="pill">Tilt · 1px-kernlijn · 24 keypoints · slechtste meting · autosave</div><div class="mobileNote">16-card review</div></header>
   <div class="content" id="inner-review">
-   <iframe id="reviewFrame" class="reviewFrame" src="review.html?v=14" title="Inner Gold Review" loading="eager"></iframe>
+   <iframe id="reviewFrame" class="reviewFrame" src="review.html?v=15" title="Inner Gold Review" loading="eager"></iframe>
    <aside class="queue" aria-label="Review queue">
     <h3>Review queue · 16</h3><p>Klik op een kaart om er direct naartoe te gaan. Alleen kaarten met extra informatiewaarde staan in deze ronde.</p>
     <button class="queueCard active" type="button" data-card-id="A-B03-P5" aria-current="true"><b>A-B03-P5 · Gengar</b><span>standard bordered</span></button>
@@ -45,18 +45,18 @@
     <button class="queueCard" type="button" data-card-id="A-B13-P1"><b>A-B13-P1 · Blastoise</b><span>standard bordered</span></button>
     <button class="queueCard" type="button" data-card-id="A-B14-P6"><b>A-B14-P6 · Gengar</b><span>standard bordered</span></button>
     <button class="queueCard" type="button" data-card-id="A-B03-P4"><b>A-B03-P4 · Misty's Lapras</b><span>illustration bordered · binnenrand actief</span></button>
-    <button class="queueCard" type="button" data-card-id="A-B07-P4"><b>A-B07-P4 · Conkeldurr V</b><span>full-art / reference candidate</span></button>
-    <button class="queueCard" type="button" data-card-id="A-B10-P6"><b>A-B10-P6 · Mega Excadrill ex</b><span>full-art + crop regression</span></button>
-    <button class="queueCard" type="button" data-card-id="A-B16-P5"><b>A-B16-P5 · Mega Greninja ex</b><span>full-art / reference candidate</span></button>
-    <button class="queueCard" type="button" data-card-id="A-B01-P5"><b>A-B01-P5 · N's Reshiram</b><span>illustration special</span></button>
-    <button class="queueCard" type="button" data-card-id="A-B05-P4"><b>A-B05-P4 · Clefairy</b><span>illustration special</span></button>
-    <button class="queueCard" type="button" data-card-id="A-B15-P1"><b>A-B15-P1 · Fomantis</b><span>illustration + crop regression</span></button>
-    <button class="queueCard" type="button" data-card-id="A-B15-P2"><b>A-B15-P2 · Spewpa</b><span>illustration + crop regression</span></button>
+    <button class="queueCard" type="button" data-card-id="A-B07-P4"><b>A-B07-P4 · Conkeldurr V</b><span>full-art bordered · binnenrand actief</span></button>
+    <button class="queueCard" type="button" data-card-id="A-B10-P6"><b>A-B10-P6 · Mega Excadrill ex</b><span>full-art bordered · cropcontrole</span></button>
+    <button class="queueCard" type="button" data-card-id="A-B16-P5"><b>A-B16-P5 · Mega Greninja ex</b><span>full-art bordered · binnenrand actief</span></button>
+    <button class="queueCard" type="button" data-card-id="A-B01-P5"><b>A-B01-P5 · N's Reshiram</b><span>illustration bordered · binnenrand actief</span></button>
+    <button class="queueCard" type="button" data-card-id="A-B05-P4"><b>A-B05-P4 · Clefairy</b><span>illustration bordered · binnenrand actief</span></button>
+    <button class="queueCard" type="button" data-card-id="A-B15-P1"><b>A-B15-P1 · Fomantis</b><span>illustration bordered · cropcontrole</span></button>
+    <button class="queueCard" type="button" data-card-id="A-B15-P2"><b>A-B15-P2 · Spewpa</b><span>illustration bordered · cropcontrole</span></button>
     <button class="queueCard" type="button" data-card-id="A-B04-P6"><b>A-B04-P6 · Misty's Vitality</b><span>trainer / item / energy</span></button>
     <button class="queueCard" type="button" data-card-id="A-B09-P4"><b>A-B09-P4 · Lure Module</b><span>trainer / item / energy</span></button>
-    <button class="queueCard reference" type="button" data-card-id="A-B10-P5"><b>A-B10-P5 · Black Belt's Training</b><span>REFERENCE REQUIRED · known false inner line</span></button>
+    <button class="queueCard reference" type="button" data-card-id="A-B10-P5"><b>A-B10-P5 · Black Belt's Training</b><span>binnenrand actief · AI-waarschuwing</span></button>
     <button class="queueCard" type="button" data-card-id="A-B13-P6"><b>A-B13-P6 · Wondrous Patch</b><span>trainer / item / energy</span></button>
-    <div class="legend">De dunne kernlijn bepaalt de meting; de subtiele stippellijn is alleen kijkhulp.<br><br>Drie meetpunten per zijde tonen de marges in millimeter. De slechtste geldige verhouding telt.<br><br>Bij borderless/full-art: kies reference/template.</div>
+    <div class="legend">De dunne kernlijn bepaalt de meting; de subtiele stippellijn is alleen kijkhulp.<br><br>Drie meetpunten per zijde tonen de marges in millimeter. De slechtste geldige verhouding telt.<br><br>De kaartstijl bepaalt niet langer de meetmodus. Kies Reference/template alleen als er werkelijk geen consistente printovergang zichtbaar is.</div>
    </aside>
   </div>
  </section>

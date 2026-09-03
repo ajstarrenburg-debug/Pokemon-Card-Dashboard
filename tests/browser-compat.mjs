@@ -9,6 +9,22 @@ const cardIds=[
   'A-B04-P6','A-B09-P4','A-B10-P5','A-B13-P6'
 ];
 const results={};
+const legacyMigrationState={
+  'A-B03-P5':{
+    card_id:'A-B03-P5',confirmed:true,mode:'inner_edge',tilt:1.35,tilt_ai:0,
+    pivot:{x:302,y:431},pan:{x:7,y:-5},note:'behouden label',seed_revision:13,
+    edits:{outer:true,inner:true,tilt:true},
+    outer:{TL:{x:23,y:34},TR:{x:591,y:36},BR:{x:589,y:849},BL:{x:21,y:848}},
+    inner:{TL:{x:42,y:51},TR:{x:565,y:50},BR:{x:563,y:833},BL:{x:43,y:835}}
+  },
+  'A-B07-P4':{
+    card_id:'A-B07-P4',confirmed:false,mode:'reference_required',tilt:0.75,tilt_ai:0,
+    pivot:{x:315,y:440},pan:{x:-3,y:4},note:'',seed_revision:13,
+    edits:{outer:true,inner:false,tilt:true},
+    outer:{TL:{x:25,y:30},TR:{x:600,y:31},BR:{x:599,y:850},BL:{x:25,y:849}},
+    inner:{TL:{x:54,y:46},TR:{x:569,y:47},BR:{x:568,y:823},BL:{x:54,y:824}}
+  }
+};
 
 function assert(condition,message) {
   if (!condition) throw new Error(message);
@@ -53,6 +69,7 @@ for (const [name,engine] of Object.entries(engines)) {
     });
 
     result.queueNavigation=[];
+    result.innerAvailability=[];
     for (const cardId of cardIds) {
       await page.locator('.queueCard[data-card-id="'+cardId+'"]').click();
       await waitForCard(frame,cardId);
@@ -63,6 +80,16 @@ for (const [name,engine] of Object.entries(engines)) {
           && active[0].getAttribute('aria-current')==='true';
       },cardId);
       result.queueNavigation.push({cardId,state});
+      const innerState=await frame.evaluate(function() {
+        return {
+          mode:document.querySelector('#mode').value,
+          buttonEnabled:!document.querySelector('#showInner').disabled,
+          layerVisible:getComputedStyle(document.querySelector('#innerGroup')).display!=='none',
+          layout:document.querySelector('#meta').textContent,
+          warning:document.querySelector('#warning').textContent
+        };
+      });
+      result.innerAvailability.push({cardId,...innerState});
     }
 
     await page.locator('.queueCard[data-card-id="A-B03-P4"]').click();
@@ -99,7 +126,7 @@ for (const [name,engine] of Object.entries(engines)) {
             }
           };
           image.onerror=function() { resolve(false); };
-          image.src='cards/'+cardId+'.jpg?matrix=14';
+          image.src='cards/'+cardId+'.jpg?matrix=15';
         });
       }));
       return checks.every(Boolean);
@@ -267,10 +294,66 @@ for (const [name,engine] of Object.entries(engines)) {
     await mobile.screenshot({path:'browser-'+name+'-mobile.png',fullPage:true});
     await mobile.close();
 
+    const migrationContext=await browser.newContext({viewport:{width:1440,height:900}});
+    await migrationContext.addInitScript(function(value) {
+      localStorage.setItem('pokemon_centering_gold_v14',JSON.stringify(value));
+    },legacyMigrationState);
+    const migrationPage=await migrationContext.newPage();
+    await migrationPage.goto('http://127.0.0.1:4173/',{waitUntil:'load'});
+    const migrationFrame=migrationPage.frames().find(candidate=>candidate.url().includes('/review.html'));
+    assert(migrationFrame,'migration review iframe missing');
+    await waitForCard(migrationFrame,'A-B03-P5');
+    const readMigrationView=()=>migrationFrame.evaluate(function() {
+      const points=function(selector) {
+        return document.querySelector(selector).getAttribute('points').split(' ').map(pair=>pair.split(',').map(Number));
+      };
+      return {
+        mode:document.querySelector('#mode').value,
+        title:document.querySelector('#title').textContent,
+        progress:document.querySelector('#prog').textContent,
+        note:document.querySelector('#note').value,
+        tilt:Number(document.querySelector('#tilt').value),
+        pan:[Number(document.querySelector('#panX').value),Number(document.querySelector('#panY').value)],
+        outer:points('#outerRect'),
+        inner:points('#innerRect'),
+        innerButtonEnabled:!document.querySelector('#showInner').disabled,
+        innerVisible:getComputedStyle(document.querySelector('#innerGroup')).display!=='none'
+      };
+    });
+    const confirmedView=await readMigrationView();
+    await migrationPage.locator('.queueCard[data-card-id="A-B07-P4"]').click();
+    await waitForCard(migrationFrame,'A-B07-P4');
+    const conkeldurrView=await readMigrationView();
+    await migrationFrame.locator('#next').click();
+    const storedMigration=await migrationPage.evaluate(function() {
+      const state=JSON.parse(localStorage.getItem('pokemon_centering_gold_v15'));
+      return {
+        confirmed:{
+          confirmed:state['A-B03-P5'].confirmed,
+          mode:state['A-B03-P5'].mode,
+          tilt:state['A-B03-P5'].tilt,
+          outer:state['A-B03-P5'].outer,
+          inner:state['A-B03-P5'].inner
+        },
+        conkeldurr:{
+          confirmed:state['A-B07-P4'].confirmed,
+          mode:state['A-B07-P4'].mode,
+          modeRevision:state['A-B07-P4'].mode_revision,
+          tilt:state['A-B07-P4'].tilt,
+          outer:state['A-B07-P4'].outer,
+          inner:state['A-B07-P4'].inner
+        }
+      };
+    });
+    result.migration={confirmedView,conkeldurrView,storedMigration};
+    await migrationContext.close();
+
     assert(result.navigation.disabledCount===10&&result.navigation.allDisabledLabeled&&result.navigation.enabledDeadButtons===0,'unfinished navigation is still presented as functional');
     assert(result.navigation.activeLinks.length===1&&result.navigation.activeLinks[0]==='#inner-review','active Inner Review route is missing');
     assert(result.navigation.queueButtons===16,'review queue is incomplete');
     assert(result.queueNavigation.length===16&&result.queueNavigation.every(item=>item.state),'one or more queue cards failed to navigate/sync');
+    assert(result.innerAvailability.length===16&&result.innerAvailability.every(item=>item.mode==='inner_edge'&&item.buttonEnabled&&item.layerVisible),'one or more cards still hide the inner-border tool');
+    assert(result.innerAvailability.find(item=>item.cardId==='A-B10-P5').warning.includes('AI-voorstel onbetrouwbaar'),'Black Belt manual-review warning is missing');
     assert(result.lapras.title.includes('A-B03-P4')&&result.lapras.mode==='inner_edge'&&result.lapras.layout.includes('illustration bordered'),'Lapras classification failed');
     assert(result.lapras.innerButtonEnabled&&result.lapras.innerVisible,'Lapras inner-border tool is unavailable');
     assert(result.lapras.outerBox.left>=40&&result.lapras.outerBox.right<=590&&result.lapras.outerBox.top>=80&&result.lapras.outerBox.bottom<=840,'Lapras crop still touches the review canvas');
@@ -294,11 +377,19 @@ for (const [name,engine] of Object.entries(engines)) {
     assert(result.directInnerDrag.moved&&result.directInnerDrag.selected&&result.directInnerDrag.source==='Gold-correctie'&&result.directInnerDrag.loupeReady==='1','direct magenta drag or loupe failed');
     assert(result.quadMoved,'independent corner movement failed');
     assert(result.measureToggle.pressed==='false'&&result.measureToggle.children===0,'measurement toggle failed');
-    assert(result.export.filename.includes('v14')&&result.export.version==='centering-gold-v14'&&result.export.schema==='border-keypoints-v1'&&result.export.rule==='centerline_on_visual_transition','v0.14 export metadata failed');
+    assert(result.export.filename.includes('v15')&&result.export.version==='centering-gold-v15'&&result.export.schema==='border-keypoints-v1'&&result.export.rule==='centerline_on_visual_transition','v0.15 export metadata failed');
     assert(result.export.outerPoints===12&&result.export.innerPoints===12,'student keypoints missing from export');
     assert(result.reference.innerHidden&&result.reference.innerButtonDisabled&&result.reference.measureButtonDisabled&&result.reference.measureChildren===0&&result.reference.loupeUsesOuter,'reference route failed');
     assert(result.scroll.max>0&&result.scroll.after>0,'dashboard does not scroll');
     assert(result.mobile.dashboardNoHorizontalOverflow&&result.mobile.reviewNoHorizontalOverflow&&result.mobile.buttonsNoOverflow&&result.mobile.imageVisible,'mobile layout failed');
+    assert(result.migration.confirmedView.progress==='1 / 16 bevestigd'&&result.migration.confirmedView.note==='behouden label','legacy confirmed label or progress was not imported');
+    assert(result.migration.confirmedView.tilt===1.35&&JSON.stringify(result.migration.confirmedView.pan)==='[7,-5]','confirmed tilt or pan changed during migration');
+    assert(JSON.stringify(result.migration.confirmedView.outer)==='[[23,34],[591,36],[589,849],[21,848]]'&&JSON.stringify(result.migration.confirmedView.inner)==='[[42,51],[565,50],[563,833],[43,835]]','confirmed geometry changed during migration');
+    assert(result.migration.conkeldurrView.mode==='inner_edge'&&result.migration.conkeldurrView.innerButtonEnabled&&result.migration.conkeldurrView.innerVisible,'Conkeldurr mode was not safely upgraded');
+    assert(result.migration.conkeldurrView.tilt===0.75&&JSON.stringify(result.migration.conkeldurrView.pan)==='[-3,4]','unconfirmed Conkeldurr positioning changed during migration');
+    assert(JSON.stringify(result.migration.conkeldurrView.outer)==='[[25,30],[600,31],[599,850],[25,849]]'&&JSON.stringify(result.migration.conkeldurrView.inner)==='[[54,46],[569,47],[568,823],[54,824]]','unconfirmed Conkeldurr geometry changed during mode upgrade');
+    assert(result.migration.storedMigration.confirmed.confirmed&&result.migration.storedMigration.confirmed.tilt===1.35,'confirmed state was not persisted to v0.15');
+    assert(!result.migration.storedMigration.conkeldurr.confirmed&&result.migration.storedMigration.conkeldurr.mode==='inner_edge'&&result.migration.storedMigration.conkeldurr.modeRevision===15&&result.migration.storedMigration.conkeldurr.tilt===0.75,'upgraded Conkeldurr state was not persisted safely');
     assert(result.errors.length===0,'browser errors: '+result.errors.join('; '));
     result.pass=true;
     await page.screenshot({path:'browser-'+name+'.png',fullPage:true});

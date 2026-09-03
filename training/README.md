@@ -8,12 +8,13 @@ The review tool exports border-keypoints-v1 targets:
 - millimeter margins and conservative worst-point centering
 
 Only user-confirmed Gold labels are admitted to the supervised dataset. AI seeds remain
-pseudo-labels and never silently become ground truth. Full-art and borderless cards use
-the reference/template route instead of an invented inner border.
+pseudo-labels and never silently become ground truth. Card layout does not determine the
+measurement mode: a visible border/print transition uses inner-edge keypoints, while the
+reference/template route is reserved for cards without a consistent transition.
 
 Prepare a model-ready dataset with:
 
-    npm run student:prepare -- Pokemon_Centering_Gold_v14_labels.json training/student-dataset-v1.json
+    npm run student:prepare -- Pokemon_Centering_Gold_v15_labels.json training/student-dataset-v1.json
 
 The generated file can feed the next student-model training run. The UI and export use
 the same measurement convention: the mathematical centerline sits on the visual

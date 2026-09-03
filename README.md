@@ -27,6 +27,9 @@ Development dashboard for Pokemon card scan QA, centering and AI-assisted inner-
 - clickable 16-card review queue with synchronized active state
 - unfinished dashboard modules are visibly disabled and labeled `Binnenkort`
 - Misty's Lapras uses a complete padded crop and a real illustration-border inner edge
+- card layout and measurement mode are independent; every visible border/print transition enables the inner-edge tool
+- v0.14 progress migrates without altering confirmed geometry, tilt, notes or keypoints
+- Black Belt's Training keeps manual inner-edge controls with an explicit unreliable-AI warning
 - subtle dashed viewing guides with unchanged 1 px measurement cores and large invisible drag targets
 
 The repository contains the webapp/development assets only. Original high-resolution collection scans are intentionally not stored here.

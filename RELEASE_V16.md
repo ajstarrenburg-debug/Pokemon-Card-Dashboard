@@ -1,6 +1,6 @@
-# v0.16 release checkpoint
+# v0.16 release checks
 
-Prepared on 2026-09-08. This code branch is not the live release.
+Prepared on 2026-09-08. See the branch's browser workflow and Pages deployment for release status.
 
 ## Completed checks
 
@@ -14,22 +14,21 @@ Prepared on 2026-09-08. This code branch is not the live release.
 - Training inputs retain the canvas image transform; eight confirmed examples can be prepared from the private v15 export.
 - The card stays visible in the desktop preview while the right-hand controls scroll.
 
-## Remaining gate
+## Publication and browser gate
 
-Automatic approval review blocked uploading the eight revised crops to the public
-GitHub repository because explicit permission for these images was not established.
-The code-only checkpoint therefore retains the currently published root images.
-Do not deploy or treat this branch as a completed crop release.
+Explicit permission to publish all eight revised crops in this public GitHub
+repository was received on 2026-09-08. Original source scans and private Gold
+exports remain outside the repository.
 
-After permission is obtained, regenerate the eight open JPEGs with
+To reproduce the eight open JPEGs, use
 `python tools/build_review_assets.py`. Preserve the original versions from v15 in
 `cards/v15/` for existing confirmations. The eight confirmed root JPEGs must remain
 unchanged; `python tools/audit_review_assets.py` checks this.
 
 Run the complete Chromium / Firefox / WebKit workflow on
 `fix/review-v16-safe-crops` with the final images, inspect the screenshots, and only
-then advance `main`. Browser test code is prepared, but this new release has not yet
-passed that three-engine gate. Original scans and private Gold exports remain private.
+then advance `main`. The workflow result is the authoritative record for that
+three-engine gate.
 
 The student export is a dataset preparation step; no student model has been trained
 or benchmarked by this release. See `training/README.md` for the reference-assisted route.

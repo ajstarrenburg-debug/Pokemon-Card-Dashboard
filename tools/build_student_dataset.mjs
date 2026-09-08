@@ -2,6 +2,7 @@ import { readFile, writeFile } from 'node:fs/promises';
 
 const EXPECTED_SCHEMA = 'border-keypoints-v1';
 const EXPECTED_POINTS = 12;
+const RECROPPED_V16 = new Set(['A-B01-P5','A-B05-P4','A-B15-P1','A-B15-P2','A-B04-P6','A-B09-P4','A-B10-P5','A-B13-P6']);
 
 function assert(condition,message) {
   if (!condition) throw new Error(message);
@@ -32,13 +33,30 @@ export function buildDataset(payload) {
   assert(payload.measurement_rule === 'centerline_on_visual_transition','Input uses the wrong measurement rule');
   assert(Array.isArray(payload.labels),'Input labels are missing');
   const examples=[];
+  const excluded=[];
   for (const label of payload.labels) {
     if (!label.confirmed) continue;
     const target=label.student_target;
     validateTarget(target,label.card_id);
+    const revision=label.asset_revision || (label.seed_revision >= 16 ? 16 : 15);
+    if (target.identity_verified === false || (label.card_id === 'A-B01-P5' && revision < 16)) {
+      excluded.push({card_id:label.card_id,reason:'legacy_image_identity_mismatch'});
+      continue;
+    }
+    const imagePath='cards/'+(RECROPPED_V16.has(label.card_id) && revision < 16 ? 'v15/' : '')+label.card_id+'.jpg';
+    assert(!target.image_path || target.image_path === imagePath,label.card_id+' image revision mismatch');
+    const transform=target.image_transform || {
+      rotation_deg:Number(label.tilt || 0),
+      pivot_px:label.pivot || {x:315,y:440},
+      translation_px:label.pan || {x:Number(label.pan_x || 0),y:Number(label.pan_y || 0)}
+    };
+    assert([transform.rotation_deg,transform.pivot_px?.x,transform.pivot_px?.y,transform.translation_px?.x,transform.translation_px?.y].every(Number.isFinite),label.card_id+' has an invalid image transform');
     examples.push({
       card_id:label.card_id,
-      image_path:'cards/'+label.card_id+'.jpg',
+      image_path:imagePath,
+      asset_revision:revision,
+      coordinate_space:'review_canvas',
+      image_transform:transform,
       source:'gold_user',
       target:target
     });
@@ -49,6 +67,7 @@ export function buildDataset(payload) {
     schema:EXPECTED_SCHEMA,
     created:new Date().toISOString(),
     example_count:examples.length,
+    excluded:excluded,
     examples:examples
   };
 }
@@ -80,6 +99,8 @@ function selfTest() {
     labels:[{card_id:'SELF-TEST',confirmed:true,student_target:target}]
   });
   assert(result.example_count === 1,'Self-test output count is wrong');
+  const positioned=buildDataset({schema:EXPECTED_SCHEMA,measurement_rule:'centerline_on_visual_transition',labels:[{card_id:'A-B03-P5',confirmed:true,tilt:-0.9,pivot:{x:301,y:429},pan:{x:-10,y:10},student_target:target}]});
+  assert(positioned.examples[0].image_transform.rotation_deg === -0.9 && positioned.examples[0].image_transform.translation_px.x === -10 && positioned.examples[0].image_transform.pivot_px.y === 429,'Tilt, pan and pivot must travel with the training image');
   process.stdout.write('STUDENT_DATASET_OK border-keypoints-v1 24 keypoints\n');
 }
 

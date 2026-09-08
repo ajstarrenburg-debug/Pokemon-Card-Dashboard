@@ -7,22 +7,22 @@ const ITEMS = [
   {card_id:'A-B07-P4',name:'Conkeldurr V',layout:'full_art_bordered',inner_geometry:'visible_border',mode:'inner_edge',mode_revision:15,outer_status:'TRANSFER_HIGH',inner_status:'MULTIVIEW_MED',L:31,R:596,T:17,B:851,OL:25,OR:600,OT:30,OB:850,semantic_warning:false},
   {card_id:'A-B10-P6',name:'Mega Excadrill ex',layout:'full_art_bordered',inner_geometry:'visible_border',mode:'inner_edge',mode_revision:15,outer_status:'TRANSFER_HIGH',inner_status:'MULTIVIEW_MED',L:35,R:592,T:17,B:850,OL:15,OR:590,OT:35,OB:850,semantic_warning:false},
   {card_id:'A-B16-P5',name:'Mega Greninja ex',layout:'full_art_bordered',inner_geometry:'visible_border',mode:'inner_edge',mode_revision:15,outer_status:'TRANSFER_HIGH',inner_status:'MULTIVIEW_MED',L:31,R:596,T:17,B:850,OL:20,OR:595,OT:35,OB:850,semantic_warning:false},
-  {card_id:'A-B01-P5',name:"N's Reshiram",layout:'illustration_bordered',inner_geometry:'visible_border',mode:'inner_edge',mode_revision:15,outer_status:'TRANSFER_MED',inner_status:'MULTIVIEW_MED',L:37,R:593,T:17,B:850,OL:25,OR:608,OT:20,OB:865,semantic_warning:false},
-  {card_id:'A-B05-P4',name:'Clefairy',layout:'illustration_bordered',inner_geometry:'visible_border',mode:'inner_edge',mode_revision:15,outer_status:'TRANSFER_HIGH',inner_status:'MULTIVIEW_MED',L:34,R:596,T:17,B:850,OL:25,OR:595,OT:35,OB:850,semantic_warning:false},
-  {card_id:'A-B15-P1',name:'Fomantis',layout:'illustration_bordered',inner_geometry:'visible_border',mode:'inner_edge',mode_revision:15,outer_status:'TRANSFER_HIGH',inner_status:'MULTIVIEW_MED',L:29,R:596,T:17,B:850,OL:30,OR:590,OT:35,OB:850,semantic_warning:false},
-  {card_id:'A-B15-P2',name:'Spewpa',layout:'illustration_bordered',inner_geometry:'visible_border',mode:'inner_edge',mode_revision:15,outer_status:'TRANSFER_HIGH',inner_status:'MULTIVIEW_MED',L:31,R:596,T:17,B:850,OL:20,OR:605,OT:35,OB:850,semantic_warning:false},
-  {card_id:'A-B04-P6',name:"Misty's Vitality",layout:'trainer_item_energy',inner_geometry:'visible_border',mode:'inner_edge',mode_revision:15,outer_status:'TRANSFER_HIGH',inner_status:'MULTIVIEW_MED',L:31,R:596,T:17,B:850,OL:25,OR:610,OT:30,OB:850,semantic_warning:false},
-  {card_id:'A-B09-P4',name:'Lure Module',layout:'trainer_item_energy',inner_geometry:'visible_border',mode:'inner_edge',mode_revision:15,outer_status:'TRANSFER_HIGH',inner_status:'MULTIVIEW_MED',L:31,R:596,T:17,B:850,OL:30,OR:590,OT:40,OB:850,semantic_warning:false},
-  {card_id:'A-B10-P5',name:"Black Belt's Training",layout:'trainer_bordered',inner_geometry:'visible_border',mode:'inner_edge',mode_revision:15,outer_status:'TRANSFER_HIGH',inner_status:'MULTIVIEW_STABLE_FALSE',L:33,R:594,T:17,B:850,OL:30,OR:600,OT:25,OB:850,semantic_warning:true},
-  {card_id:'A-B13-P6',name:'Wondrous Patch',layout:'trainer_item_energy',inner_geometry:'visible_border',mode:'inner_edge',mode_revision:15,outer_status:'TRANSFER_HIGH',inner_status:'MULTIVIEW_MED',L:31,R:596,T:17,B:850,OL:25,OR:595,OT:35,OB:850,semantic_warning:false}
+  {card_id:'A-B01-P5',name:"N's Reshiram",layout:'illustration_bordered',inner_geometry:'visible_border',mode:'inner_edge',mode_revision:15,outer_status:'TRANSFER_MED',inner_status:'MULTIVIEW_MED',L:23.384,R:606.616,T:22,B:858,OL:95,OR:553,OT:143,OB:783,tilt_ai:-1.6,semantic_warning:false,seed_revision:16},
+  {card_id:'A-B05-P4',name:'Clefairy',layout:'illustration_bordered',inner_geometry:'visible_border',mode:'inner_edge',mode_revision:15,outer_status:'TRANSFER_HIGH',inner_status:'MULTIVIEW_MED',L:23.625,R:603.75,T:27.257,B:848.85,OL:94,OR:574,OT:136,OB:814,semantic_warning:false,seed_revision:16},
+  {card_id:'A-B15-P1',name:'Fomantis',layout:'illustration_bordered',inner_geometry:'visible_border',mode:'inner_edge',mode_revision:15,outer_status:'TRANSFER_HIGH',inner_status:'MULTIVIEW_MED',L:25.042,R:603.64,T:22.032,B:842.415,OL:98,OR:576,OT:111,OB:790,semantic_warning:false,seed_revision:16},
+  {card_id:'A-B15-P2',name:'Spewpa',layout:'illustration_bordered',inner_geometry:'visible_border',mode:'inner_edge',mode_revision:15,outer_status:'TRANSFER_HIGH',inner_status:'MULTIVIEW_MED',L:26.526,R:602.147,T:26.506,B:850.843,OL:100,OR:575,OT:140,OB:804,semantic_warning:false,seed_revision:16},
+  {card_id:'A-B04-P6',name:"Misty's Vitality",layout:'trainer_item_energy',inner_geometry:'visible_border',mode:'inner_edge',mode_revision:15,outer_status:'TRANSFER_HIGH',inner_status:'MULTIVIEW_MED',L:24.514,R:603.035,T:28.588,B:852.655,OL:62,OR:576,OT:122,OB:830,semantic_warning:false,seed_revision:16},
+  {card_id:'A-B09-P4',name:'Lure Module',layout:'trainer_item_energy',inner_geometry:'visible_border',mode:'inner_edge',mode_revision:15,outer_status:'TRANSFER_HIGH',inner_status:'MULTIVIEW_MED',L:18.9,R:609.84,T:21.681,B:857.043,OL:76,OR:576,OT:113,OB:803,semantic_warning:false,seed_revision:16},
+  {card_id:'A-B10-P5',name:"Black Belt's Training",layout:'trainer_bordered',inner_geometry:'visible_border',mode:'inner_edge',mode_revision:15,outer_status:'TRANSFER_HIGH',inner_status:'MULTIVIEW_STABLE_FALSE',L:24.68,R:601.423,T:30.713,B:851.958,OL:95,OR:580,OT:116,OB:775,semantic_warning:true,seed_revision:16},
+  {card_id:'A-B13-P6',name:'Wondrous Patch',layout:'trainer_item_energy',inner_geometry:'visible_border',mode:'inner_edge',mode_revision:15,outer_status:'TRANSFER_HIGH',inner_status:'MULTIVIEW_MED',L:24.938,R:602.438,T:29.113,B:850.887,OL:59,OR:539,OT:125,OB:790,semantic_warning:false,seed_revision:16}
 ];
 
 const WIDTH = 630;
 const HEIGHT = 880;
 const CARD_MM = {width:63, height:88};
 const SAMPLE_T = [0.25, 0.5, 0.75];
-const KEY = 'pokemon_centering_gold_v15';
-const LEGACY_KEYS = ['pokemon_centering_gold_v14','pokemon_centering_gold_v13','pokemon_centering_gold_v12','pokemon_centering_gold_v11','pokemon_centering_gold_v10','pokemon_centering_gold_v09','pokemon_centering_gold_v08'];
+const KEY = 'pokemon_centering_gold_v16';
+const LEGACY_KEYS = ['pokemon_centering_gold_v15','pokemon_centering_gold_v14','pokemon_centering_gold_v13','pokemon_centering_gold_v12','pokemon_centering_gold_v11','pokemon_centering_gold_v10','pokemon_centering_gold_v09','pokemon_centering_gold_v08'];
 const SVG_NS = 'http://www.w3.org/2000/svg';
 const $ = function(id) { return document.getElementById(id); };
 let idx = 0;
@@ -123,7 +123,8 @@ function stateFor(item) {
   const outerAI = outerSeed(item);
   const innerAI = innerSeed(item);
   if (existing) {
-    const resetForNewAsset = Number(item.seed_revision || 0) > Number(existing.seed_revision || 0);
+    const resetForNewAsset = !Boolean(existing.confirmed)
+      && Number(item.seed_revision || 0) > Number(existing.seed_revision || 0);
     const updateUnconfirmedMode = !Boolean(existing.confirmed)
       && Number(item.mode_revision || 14) > Number(existing.mode_revision || 14);
     const legacyInner = existing.inner || existing.box;
@@ -134,15 +135,16 @@ function stateFor(item) {
       inner:resetForNewAsset ? cloneQuad(innerAI) : normalizeQuad(legacyInner,innerAI),
       ai_outer:resetForNewAsset ? cloneQuad(outerAI) : normalizeQuad(existing.ai_outer,outerAI),
       ai_inner:resetForNewAsset ? cloneQuad(innerAI) : normalizeQuad(existing.ai_inner,innerAI),
-      tilt:Number.isFinite(Number(existing.tilt)) ? Number(existing.tilt) : aiTilt(item),
-      tilt_ai:Number.isFinite(Number(existing.tilt_ai)) ? Number(existing.tilt_ai) : aiTilt(item),
-      pivot:existing.pivot ? point(existing.pivot.x,existing.pivot.y) : pivotSeed(),
-      pan:existing.pan ? point(existing.pan.x,existing.pan.y) : point(existing.pan_x || 0,existing.pan_y || 0),
+      tilt:resetForNewAsset ? aiTilt(item) : (Number.isFinite(Number(existing.tilt)) ? Number(existing.tilt) : aiTilt(item)),
+      tilt_ai:resetForNewAsset ? aiTilt(item) : (Number.isFinite(Number(existing.tilt_ai)) ? Number(existing.tilt_ai) : aiTilt(item)),
+      pivot:resetForNewAsset ? pivotSeed() : (existing.pivot ? point(existing.pivot.x,existing.pivot.y) : pivotSeed()),
+      pan:resetForNewAsset ? panSeed() : (existing.pan ? point(existing.pan.x,existing.pan.y) : point(existing.pan_x || 0,existing.pan_y || 0)),
       edits:resetForNewAsset ? editSeed() : {...editSeed(),...(existing.edits || {})},
       mode:resetForNewAsset || updateUnconfirmedMode ? item.mode : (existing.mode || item.mode),
       mode_revision:item.mode_revision || existing.mode_revision || 14,
       confirmed:resetForNewAsset ? false : Boolean(existing.confirmed),
-      seed_revision:item.seed_revision || existing.seed_revision || 13
+      asset_revision:resetForNewAsset ? 16 : (existing.asset_revision || (Number(existing.seed_revision) >= 16 ? 16 : 15)),
+      seed_revision:resetForNewAsset ? item.seed_revision : (existing.seed_revision || item.seed_revision || 13)
     };
   }
   return {
@@ -159,9 +161,15 @@ function stateFor(item) {
     edits:editSeed(),
     note:'',
     confirmed:false,
+    asset_revision:item.seed_revision === 16 ? 16 : 15,
     mode_revision:item.mode_revision || 15,
-    seed_revision:item.seed_revision || 14
+    seed_revision:item.seed_revision || 15
   };
+}
+
+function imagePathFor(item,state) {
+  const legacy = item.seed_revision === 16 && state.asset_revision < 16;
+  return 'cards/' + (legacy ? 'v15/' : '') + item.card_id + '.jpg';
 }
 
 function snapshot() {
@@ -601,7 +609,7 @@ function focusSide(layer,side) {
 function loadCardImage(item) {
   const img=$('img');
   const status=$('imageStatus');
-  const src='cards/'+item.card_id+'.jpg?v=15';
+  const src=imagePathFor(item,cur)+'?v=16';
   img.dataset.cardId=item.card_id;
   img.alt=item.card_id+' · '+item.name;
   status.hidden=false;
@@ -615,7 +623,7 @@ function loadCardImage(item) {
     notifyHeight();
     const next=ITEMS[(idx+1)%ITEMS.length];
     const preload=new Image();
-    preload.src='cards/'+next.card_id+'.jpg?v=15';
+    preload.src=imagePathFor(next,stateFor(next))+'?v=16';
   };
   img.onerror=function() {
     if(img.dataset.cardId!==item.card_id)return;
@@ -634,6 +642,10 @@ function updateWarning(item) {
     $('warning').innerHTML='<div class="warn"><b>Reference/template gekozen.</b> De magenta laag en punten zijn uitgeschakeld. Gebruik dit alleen als er geen consistente printovergang te plaatsen is.</div>';
   } else if (item.semantic_warning) {
     $('warning').innerHTML='<div class="warn"><b>AI-voorstel onbetrouwbaar.</b> De detector volgt hier mogelijk een interne grafische lijn. Plaats de magenta kern daarom handmatig op de overgang border → binnenste printvlak.</div>';
+  } else if (item.seed_revision === 16 && cur.asset_revision < 16) {
+    $('warning').innerHTML='<div class="warn"><b>Eerdere bevestiging behouden.</b> Je meting staat bij de oorspronkelijke afbeelding. De nieuwe uitsnede is alleen voor nog onbevestigde kaarten.</div>';
+  } else if (item.seed_revision === 16 && !cur.confirmed) {
+    $('warning').innerHTML='<div class="good">Ruimere uitsnede gecontroleerd. De lijnen zijn startvoorstellen: controleer de fysieke kaartrand en de printovergang voordat je bevestigt.</div>';
   } else {
     $('warning').innerHTML='<div class="good">Meetbaar. De AI-punten zijn alleen het startvoorstel; controleer de dunne kernlijnen.</div>';
   }
@@ -649,8 +661,8 @@ function render() {
   $('meta').textContent=item.layout.replaceAll('_',' ')+' · '+(idx+1)+' / '+ITEMS.length;
   $('mode').value=cur.mode;
   $('note').value=cur.note||'';
-  $('outerStatus').textContent=item.outer_status.replace('TRANSFER_','');
-  $('innerStatus').textContent=item.inner_status.replace('MULTIVIEW_','');
+  $('outerStatus').textContent=item.seed_revision === 16 ? 'CONTROLE' : item.outer_status.replace('TRANSFER_','');
+  $('innerStatus').textContent=item.seed_revision === 16 ? 'CONTROLE' : item.inner_status.replace('MULTIVIEW_','');
   updateWarning(item);
   $('prog').textContent=Object.values(saved).filter(function(value) { return value.confirmed; }).length+' / '+ITEMS.length+' bevestigd';
   history=[];
@@ -729,6 +741,15 @@ function buildStudentTarget(state,item) {
   const target={
     schema:'border-keypoints-v1',
     image_size:{width:WIDTH,height:HEIGHT},
+    image_path:imagePathFor(item,state),
+    asset_revision:state.asset_revision,
+    identity_verified:!(item.card_id === 'A-B01-P5' && state.asset_revision < 16),
+    coordinate_space:'review_canvas',
+    image_transform:{
+      rotation_deg:Number(state.tilt||0),
+      pivot_px:{...(state.pivot || pivotSeed())},
+      translation_px:{...(state.pan || panSeed())}
+    },
     rule:'centerline_on_visual_transition',
     layout:item.layout,
     inner_geometry:item.inner_geometry,
@@ -1033,7 +1054,7 @@ $('export').onclick=function() {
     };
   });
   const payload={
-    version:'centering-gold-v15',
+    version:'centering-gold-v16',
     schema:'border-keypoints-v1',
     created:new Date().toISOString(),
     measurement_rule:'centerline_on_visual_transition',
@@ -1043,13 +1064,20 @@ $('export').onclick=function() {
   const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'});
   const anchor=document.createElement('a');
   anchor.href=URL.createObjectURL(blob);
-  anchor.download='Pokemon_Centering_Gold_v15_labels.json';
+  anchor.download='Pokemon_Centering_Gold_v16_labels.json';
   anchor.click();
   setTimeout(function() { URL.revokeObjectURL(anchor.href); },1000);
 };
 
 window.addEventListener('message',function(event) {
   if(window.parent!==window&&event.source!==window.parent)return;
+  if(event.data?.type==='review-viewport'){
+    if(Number.isFinite(event.data.top)&&Number.isFinite(event.data.height)){
+      document.documentElement.style.setProperty('--review-sticky-top',Math.max(8,event.data.top)+'px');
+      document.documentElement.style.setProperty('--review-viewport-height',Math.max(300,event.data.height)+'px');
+    }
+    return;
+  }
   if(event.data?.type!=='review-select-card')return;
   const nextIndex=ITEMS.findIndex(function(item) { return item.card_id===event.data.cardId; });
   if(nextIndex<0||nextIndex===idx)return;

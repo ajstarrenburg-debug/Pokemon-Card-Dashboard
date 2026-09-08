@@ -5,14 +5,52 @@ replace them with a base64 payload or a sprite: those two shortcuts caused the
 cross-browser failures this script was introduced to remove.
 """
 
+import argparse
 from pathlib import Path
 
-from PIL import Image
+from PIL import Image, ImageOps
 
 
 ROOT = Path(__file__).resolve().parents[1]
 SCANS = ROOT.parent / "batch-scans" / "Pokemon"
 OUTPUT = ROOT / "cards"
+CANVAS = (630, 880)
+SAFE_MARGIN = 45
+
+# These eight files already have user-confirmed Gold labels in the v0.15
+# review export.  Keep their exact published pixels unless a deliberate full
+# rebuild is requested; changing a confirmed image would invalidate its label.
+CONFIRMED_LOCKED = {
+    "A-B03-P5",
+    "A-B12-P5",
+    "A-B13-P1",
+    "A-B14-P6",
+    "A-B03-P4",
+    "A-B07-P4",
+    "A-B10-P6",
+    "A-B16-P5",
+}
+
+OPEN_SAFE_RECROP = {
+    "A-B01-P5",
+    "A-B05-P4",
+    "A-B15-P1",
+    "A-B15-P2",
+    "A-B04-P6",
+    "A-B09-P4",
+    "A-B10-P5",
+    "A-B13-P6",
+}
+
+# Batch 1 is stored in reverse physical order relative to its registered card
+# IDs.  A-B01-P5 is N's Reshiram in source slot 2; slot 5 is Budew.  The old
+# dashboard selected slot 5 and therefore showed the wrong, clipped card.
+SOURCE_POSITION_OVERRIDES = {"A-B01-P5": 2}
+
+# N's Reshiram needs a card-specific source window because its direct scan has
+# a different layout from the sideways toploader pages.  Values are x, y,
+# width, height in the upright working cell.
+SAFE_CROP_OVERRIDES = {"A-B01-P5": (40, 0, 600, 683)}
 
 # crop is expressed in the already upright per-position working cell.
 TARGETS = [
@@ -62,22 +100,67 @@ def working_cell(batch: int, position: int) -> Image.Image:
     return cell.transpose(Image.Transpose.ROTATE_270)
 
 
+def safe_crop_box(
+    card_id: str, cell: Image.Image, box: tuple[int, int, int, int]
+) -> tuple[int, int, int, int]:
+    if card_id in SAFE_CROP_OVERRIDES:
+        x, y, width, height = SAFE_CROP_OVERRIDES[card_id]
+        return x, y, x + width, y + height
+
+    x, y, width, height = box
+    return (
+        max(0, x - SAFE_MARGIN),
+        max(0, y - SAFE_MARGIN),
+        min(cell.width, x + width + SAFE_MARGIN),
+        min(cell.height, y + height + SAFE_MARGIN),
+    )
+
+
+def render_card(
+    card_id: str, batch: int, position: int, box: tuple[int, int, int, int]
+) -> Image.Image:
+    source_position = SOURCE_POSITION_OVERRIDES.get(card_id, position)
+    cell = working_cell(batch, source_position)
+
+    if card_id in OPEN_SAFE_RECROP:
+        crop_box = safe_crop_box(card_id, cell, box)
+        crop = cell.crop(crop_box)
+        fitted = ImageOps.contain(crop, CANVAS, Image.Resampling.LANCZOS)
+        canvas = Image.new("RGB", CANVAS, (247, 247, 247))
+        canvas.paste(
+            fitted,
+            ((CANVAS[0] - fitted.width) // 2, (CANVAS[1] - fitted.height) // 2),
+        )
+        return canvas
+
+    x, y, width, height = box
+    card = cell.crop((x, y, x + width, y + height))
+    if card_id == "A-B03-P4":
+        # Preserve the wider source crop without stretching it.  Center it on
+        # a fixed review canvas so all four physical edges remain visible.
+        card.thumbnail(CANVAS, Image.Resampling.LANCZOS)
+        canvas = Image.new("RGB", CANVAS, (247, 247, 247))
+        canvas.paste(
+            card, ((CANVAS[0] - card.width) // 2, (CANVAS[1] - card.height) // 2)
+        )
+        return canvas
+    return card.resize(CANVAS, Image.Resampling.LANCZOS)
+
+
 def main() -> None:
-    OUTPUT.mkdir(parents=True, exist_ok=True)
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--output-dir", type=Path, default=OUTPUT)
+    parser.add_argument("--include-confirmed", action="store_true")
+    args = parser.parse_args()
+
+    args.output_dir.mkdir(parents=True, exist_ok=True)
     for card_id, batch, position, (x, y, width, height) in TARGETS:
-        cell = working_cell(batch, position)
-        card = cell.crop((x, y, x + width, y + height))
-        if card_id == "A-B03-P4":
-            # Preserve the wider source crop without stretching it.  Center it
-            # on a fixed review canvas so all four physical edges remain visible.
-            card.thumbnail((630, 880), Image.Resampling.LANCZOS)
-            canvas = Image.new("RGB", (630, 880), (247, 247, 247))
-            canvas.paste(card, ((630 - card.width) // 2, (880 - card.height) // 2))
-            card = canvas
-        else:
-            card = card.resize((630, 880), Image.Resampling.LANCZOS)
+        target = args.output_dir / f"{card_id}.jpg"
+        if card_id in CONFIRMED_LOCKED and target.exists() and not args.include_confirmed:
+            continue
+        card = render_card(card_id, batch, position, (x, y, width, height))
         card.save(
-            OUTPUT / f"{card_id}.jpg",
+            target,
             format="JPEG",
             quality=90,
             optimize=True,

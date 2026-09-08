@@ -90,6 +90,9 @@ for (const [name,engine] of Object.entries(engines)) {
         };
       });
       result.innerAvailability.push({cardId,...innerState});
+      if (cardIds.indexOf(cardId)>=8) {
+        await frame.locator('.cardwrap').screenshot({path:'browser-'+name+'-'+cardId+'.png'});
+      }
     }
 
     await page.locator('.queueCard[data-card-id="A-B03-P4"]').click();
@@ -126,7 +129,7 @@ for (const [name,engine] of Object.entries(engines)) {
             }
           };
           image.onerror=function() { resolve(false); };
-          image.src='cards/'+cardId+'.jpg?matrix=15';
+          image.src='cards/'+cardId+'.jpg?matrix=16';
         });
       }));
       return checks.every(Boolean);
@@ -256,6 +259,9 @@ for (const [name,engine] of Object.entries(engines)) {
       version:exportPayload.version,
       schema:exportPayload.schema,
       rule:exportPayload.measurement_rule,
+      imagePath:exported.student_target.image_path,
+      coordinateSpace:exported.student_target.coordinate_space,
+      transform:exported.student_target.image_transform,
       outerPoints:exported.student_target.outer_keypoints.length,
       innerPoints:exported.student_target.inner_keypoints.length
     };
@@ -276,6 +282,15 @@ for (const [name,engine] of Object.entries(engines)) {
       window.scrollTo(0,document.documentElement.scrollHeight);
       return {before,after:window.scrollY,max:document.documentElement.scrollHeight-window.innerHeight};
     });
+    await page.evaluate(()=>window.scrollTo(0,600));
+    await page.waitForFunction(function() {
+      const frame=document.querySelector('#reviewFrame');
+      const rect=frame.contentDocument.querySelector('.stage').getBoundingClientRect();
+      const top=frame.getBoundingClientRect().top+rect.top;
+      return top>=document.querySelector('.top').getBoundingClientRect().bottom-2 && top+rect.height<=window.innerHeight;
+    });
+    result.cardStaysVisible=true;
+    await page.screenshot({path:'browser-'+name+'-controls-scrolled.png',fullPage:false});
 
     const mobile=await context.newPage();
     mobile.on('console',message=>{if(message.type()==='error')result.errors.push('mobile: '+message.text())});
@@ -326,7 +341,7 @@ for (const [name,engine] of Object.entries(engines)) {
     const conkeldurrView=await readMigrationView();
     await migrationFrame.locator('#next').click();
     const storedMigration=await migrationPage.evaluate(function() {
-      const state=JSON.parse(localStorage.getItem('pokemon_centering_gold_v15'));
+      const state=JSON.parse(localStorage.getItem('pokemon_centering_gold_v16'));
       return {
         confirmed:{
           confirmed:state['A-B03-P5'].confirmed,
@@ -347,6 +362,41 @@ for (const [name,engine] of Object.entries(engines)) {
     });
     result.migration={confirmedView,conkeldurrView,storedMigration};
     await migrationContext.close();
+
+    const v15Fixture=Object.fromEntries(cardIds.slice(0,8).map(cardId=>[cardId,{
+      ...legacyMigrationState['A-B03-P5'],card_id:cardId,seed_revision:13,mode_revision:15
+    }]));
+    v15Fixture['A-B01-P5']={...legacyMigrationState['A-B07-P4'],card_id:'A-B01-P5',seed_revision:13,mode_revision:15,mode:'inner_edge',tilt:-0.7};
+    // A ninth confirmation made after a user's backup must retain its old pixels.
+    v15Fixture['A-B05-P4']={...legacyMigrationState['A-B03-P5'],card_id:'A-B05-P4',seed_revision:13,mode_revision:15};
+    const v15Context=await browser.newContext({viewport:{width:1440,height:900}});
+    await v15Context.addInitScript(function(value) {
+      localStorage.setItem('pokemon_centering_gold_v15',JSON.stringify(value));
+    },v15Fixture);
+    const v15Page=await v15Context.newPage();
+    await v15Page.goto('http://127.0.0.1:4173/',{waitUntil:'load'});
+    const v15Frame=v15Page.frames().find(candidate=>candidate.url().includes('/review.html'));
+    for (const cardId of Object.keys(v15Fixture)) {
+      await v15Page.locator('.queueCard[data-card-id="'+cardId+'"]').click();
+      await waitForCard(v15Frame,cardId);
+    }
+    const laterImage=await v15Frame.locator('#img').getAttribute('src');
+    await v15Frame.locator('#next').click();
+    await v15Page.reload({waitUntil:'load'});
+    const v15State=await v15Page.evaluate(()=>JSON.parse(localStorage.getItem('pokemon_centering_gold_v16')));
+    for (const [cardId,before] of Object.entries(v15Fixture)) {
+      if (!before.confirmed) continue;
+      for (const field of ['confirmed','outer','inner','tilt','pivot','pan','note','edits']) {
+        assert(JSON.stringify(v15State[cardId][field])===JSON.stringify(before[field]),cardId+' lost v15 '+field);
+      }
+    }
+    const reshiram=v15State['A-B01-P5'];
+    assert(reshiram.asset_revision===16&&reshiram.seed_revision===16&&!reshiram.confirmed&&reshiram.tilt===-1.6&&reshiram.pan.x===0&&reshiram.outer.TL.x===95,'Reshiram kept stale crop coordinates');
+    assert(laterImage==='cards/v15/A-B05-P4.jpg?v=16','later confirmation lost its original image');
+    const oldBackup=await v15Page.evaluate(()=>JSON.parse(localStorage.getItem('pokemon_centering_gold_v15')));
+    assert(JSON.stringify(oldBackup)===JSON.stringify(v15Fixture),'v15 backup was overwritten');
+    result.v15Migration={preserved:9,reshiramReset:true,legacyImageRetained:true,backupIntact:true};
+    await v15Context.close();
 
     assert(result.navigation.disabledCount===10&&result.navigation.allDisabledLabeled&&result.navigation.enabledDeadButtons===0,'unfinished navigation is still presented as functional');
     assert(result.navigation.activeLinks.length===1&&result.navigation.activeLinks[0]==='#inner-review','active Inner Review route is missing');
@@ -377,10 +427,12 @@ for (const [name,engine] of Object.entries(engines)) {
     assert(result.directInnerDrag.moved&&result.directInnerDrag.selected&&result.directInnerDrag.source==='Gold-correctie'&&result.directInnerDrag.loupeReady==='1','direct magenta drag or loupe failed');
     assert(result.quadMoved,'independent corner movement failed');
     assert(result.measureToggle.pressed==='false'&&result.measureToggle.children===0,'measurement toggle failed');
-    assert(result.export.filename.includes('v15')&&result.export.version==='centering-gold-v15'&&result.export.schema==='border-keypoints-v1'&&result.export.rule==='centerline_on_visual_transition','v0.15 export metadata failed');
+    assert(result.export.filename.includes('v16')&&result.export.version==='centering-gold-v16'&&result.export.schema==='border-keypoints-v1'&&result.export.rule==='centerline_on_visual_transition','v0.16 export metadata failed');
     assert(result.export.outerPoints===12&&result.export.innerPoints===12,'student keypoints missing from export');
+    assert(result.export.imagePath==='cards/A-B03-P5.jpg'&&result.export.coordinateSpace==='review_canvas'&&result.export.transform.pivot_px.x===315,'student image transform or revision missing');
     assert(result.reference.innerHidden&&result.reference.innerButtonDisabled&&result.reference.measureButtonDisabled&&result.reference.measureChildren===0&&result.reference.loupeUsesOuter,'reference route failed');
     assert(result.scroll.max>0&&result.scroll.after>0,'dashboard does not scroll');
+    assert(result.cardStaysVisible,'card disappeared while using lower controls');
     assert(result.mobile.dashboardNoHorizontalOverflow&&result.mobile.reviewNoHorizontalOverflow&&result.mobile.buttonsNoOverflow&&result.mobile.imageVisible,'mobile layout failed');
     assert(result.migration.confirmedView.progress==='1 / 16 bevestigd'&&result.migration.confirmedView.note==='behouden label','legacy confirmed label or progress was not imported');
     assert(result.migration.confirmedView.tilt===1.35&&JSON.stringify(result.migration.confirmedView.pan)==='[7,-5]','confirmed tilt or pan changed during migration');
@@ -388,7 +440,7 @@ for (const [name,engine] of Object.entries(engines)) {
     assert(result.migration.conkeldurrView.mode==='inner_edge'&&result.migration.conkeldurrView.innerButtonEnabled&&result.migration.conkeldurrView.innerVisible,'Conkeldurr mode was not safely upgraded');
     assert(result.migration.conkeldurrView.tilt===0.75&&JSON.stringify(result.migration.conkeldurrView.pan)==='[-3,4]','unconfirmed Conkeldurr positioning changed during migration');
     assert(JSON.stringify(result.migration.conkeldurrView.outer)==='[[25,30],[600,31],[599,850],[25,849]]'&&JSON.stringify(result.migration.conkeldurrView.inner)==='[[54,46],[569,47],[568,823],[54,824]]','unconfirmed Conkeldurr geometry changed during mode upgrade');
-    assert(result.migration.storedMigration.confirmed.confirmed&&result.migration.storedMigration.confirmed.tilt===1.35,'confirmed state was not persisted to v0.15');
+    assert(result.migration.storedMigration.confirmed.confirmed&&result.migration.storedMigration.confirmed.tilt===1.35,'confirmed state was not persisted to v0.16');
     assert(!result.migration.storedMigration.conkeldurr.confirmed&&result.migration.storedMigration.conkeldurr.mode==='inner_edge'&&result.migration.storedMigration.conkeldurr.modeRevision===15&&result.migration.storedMigration.conkeldurr.tilt===0.75,'upgraded Conkeldurr state was not persisted safely');
     assert(result.errors.length===0,'browser errors: '+result.errors.join('; '));
     result.pass=true;

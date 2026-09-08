@@ -32,12 +32,12 @@
    <button class="navItem" type="button" disabled><span>Market / sales</span><small class="soon">Binnenkort</small></button>
   </nav>
   <div class="navStatus">Inner Review is nu de actieve beoordelingsmodule. De overige onderdelen zijn bewust uitgeschakeld totdat ze gebouwd zijn.</div>
-  <div class="foot">v0.15 veilige meetmodus-migratie<br>16 losse kaartbeelden</div>
+  <div class="foot">v0.16 · ruimere scanmarge<br>Bevestigde metingen blijven behouden</div>
  </aside>
  <section class="main">
   <header class="top"><div class="title">AI Learning · Inner Review<small>Gold Set v0.4 · 16 geselecteerde kaarten</small></div><div class="pill">Tilt · 1px-kernlijn · 24 keypoints · slechtste meting · autosave</div><div class="mobileNote">16-card review</div></header>
   <div class="content" id="inner-review">
-   <iframe id="reviewFrame" class="reviewFrame" src="review.html?v=15" title="Inner Gold Review" loading="eager"></iframe>
+   <iframe id="reviewFrame" class="reviewFrame" src="review.html?v=16" title="Inner Gold Review" loading="eager"></iframe>
    <aside class="queue" aria-label="Review queue">
     <h3>Review queue · 16</h3><p>Klik op een kaart om er direct naartoe te gaan. Alleen kaarten met extra informatiewaarde staan in deze ronde.</p>
     <button class="queueCard active" type="button" data-card-id="A-B03-P5" aria-current="true"><b>A-B03-P5 · Gengar</b><span>standard bordered</span></button>
@@ -65,12 +65,23 @@
 const frame=document.getElementById('reviewFrame');
 const queueButtons=Array.from(document.querySelectorAll('.queueCard'));
 let pendingCardId=null;
+let viewportFrame=null;
+function syncReviewViewport(){
+  if(viewportFrame!==null)return;
+  viewportFrame=requestAnimationFrame(()=>{
+    viewportFrame=null;
+    const headerBottom=document.querySelector('.top').getBoundingClientRect().bottom;
+    frame.contentWindow?.postMessage({type:'review-viewport',top:Math.max(8,headerBottom-frame.getBoundingClientRect().top+10),height:Math.max(300,window.innerHeight-headerBottom-10)},'*');
+  });
+}
 function setFrameHeight(h){if(Number.isFinite(h)&&h>=700&&h<=2600)frame.style.height=Math.ceil(h)+'px'}
 function markQueue(cardId){queueButtons.forEach(button=>{const selected=button.dataset.cardId===cardId;button.classList.toggle('active',selected);if(selected)button.setAttribute('aria-current','true');else button.removeAttribute('aria-current')})}
 function sendCard(cardId){pendingCardId=cardId;markQueue(cardId);frame.contentWindow?.postMessage({type:'review-select-card',cardId},'*')}
 queueButtons.forEach(button=>button.addEventListener('click',()=>{sendCard(button.dataset.cardId);document.getElementById('inner-review').scrollIntoView({block:'start'})}));
-window.addEventListener('message',event=>{if(event.source!==frame.contentWindow)return;if(event.data?.type==='review-height')setFrameHeight(Number(event.data.height));if(event.data?.type==='review-card-change'){pendingCardId=event.data.cardId;markQueue(event.data.cardId)}});
-frame.addEventListener('load',()=>{try{setFrameHeight(frame.contentDocument.documentElement.scrollHeight)}catch(_){}if(pendingCardId)sendCard(pendingCardId)});
+window.addEventListener('message',event=>{if(event.source!==frame.contentWindow)return;if(event.data?.type==='review-height'){setFrameHeight(Number(event.data.height));syncReviewViewport()}if(event.data?.type==='review-card-change'){pendingCardId=event.data.cardId;markQueue(event.data.cardId)}});
+window.addEventListener('scroll',syncReviewViewport,{passive:true});
+window.addEventListener('resize',syncReviewViewport);
+frame.addEventListener('load',()=>{try{setFrameHeight(frame.contentDocument.documentElement.scrollHeight)}catch(_){}if(pendingCardId)sendCard(pendingCardId);syncReviewViewport()});
 </script>
 </body>
 </html>

@@ -3,3 +3,8 @@ dist/
 __pycache__/
 browser-test.mjs
 *-dashboard.png
+
+# Personal input must never enter the public repository.
+/private/
+/local_exports/
+Pokemon_*Gold*_labels.json

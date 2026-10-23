@@ -34,6 +34,8 @@ let showMeasurements = true;
 let loupeTarget = null;
 let cur = null;
 let saved = {};
+let storageReadFailed=false;
+let renderedDraft = null;
 
 try {
   let raw = localStorage.getItem(KEY);
@@ -43,7 +45,14 @@ try {
   saved = JSON.parse(raw || '{}');
 } catch (_) {
   saved = {};
+  storageReadFailed=true;
 }
+
+// Detect another tab changing storage before or during an import preview.
+let knownStorage=null;
+try {
+  knownStorage=Object.fromEntries([KEY,...LEGACY_KEYS].map(key=>[key,localStorage.getItem(key)]));
+} catch (_) {}
 
 function notifyHeight() {
   requestAnimationFrame(function() {
@@ -123,9 +132,9 @@ function stateFor(item) {
   const outerAI = outerSeed(item);
   const innerAI = innerSeed(item);
   if (existing) {
-    const resetForNewAsset = !Boolean(existing.confirmed)
+    const resetForNewAsset = !existing.restored_from_export && !Boolean(existing.confirmed)
       && Number(item.seed_revision || 0) > Number(existing.seed_revision || 0);
-    const updateUnconfirmedMode = !Boolean(existing.confirmed)
+    const updateUnconfirmedMode = !existing.restored_from_export && !Boolean(existing.confirmed)
       && Number(item.mode_revision || 14) > Number(existing.mode_revision || 14);
     const legacyInner = existing.inner || existing.box;
     return {
@@ -669,6 +678,7 @@ function render() {
   activeLayer='tilt';
   updateTilt();
   updateGeom();
+  renderedDraft=JSON.stringify(restoreDraft());
   notifyHeight();
   try {
     parent.postMessage({type:'review-card-change',cardId:item.card_id},'*');
@@ -682,6 +692,7 @@ function persist(confirmed) {
   cur.student_target=buildStudentTarget(cur,ITEMS[idx]);
   saved[cur.card_id]=cur;
   localStorage.setItem(KEY,JSON.stringify(saved));
+  knownStorage=storageSnapshot();
 }
 
 function pos(event) {
@@ -990,6 +1001,16 @@ $('reset').onclick=function() {
   cur.pivot=pivotSeed();
   cur.pan=panSeed();
   cur.edits=editSeed();
+  if (cur.restored_from_export) {
+    // An explicit Reset AI leaves the restored pixels and adopts the current seed.
+    cur.restored_from_export=false;
+    cur.confirmed=false;
+    cur.asset_revision=item.seed_revision===16 ? 16 : 15;
+    cur.seed_revision=item.seed_revision || 15;
+    cur.mode_revision=item.mode_revision || 15;
+    loadCardImage(item);
+    updateWarning(item);
+  }
   pickingPivot=false;
   activeLayer='tilt';
   loupeTarget=null;
@@ -1086,6 +1107,108 @@ window.addEventListener('message',function(event) {
   render();
   window.scrollTo({top:0,behavior:'auto'});
 });
+
+// Imports stay below the state helpers so migration tests can execute those helpers in isolation.
+import {MAX_RESTORE_BYTES,parseGoldExport,planGoldRestore,commitGoldRestore} from './review-restore.js';
+let restorePreview=null;
+let restoreRead=0;
+
+function restoreDraft() {
+  return {...cur,note:$('note').value,mode:$('mode').value};
+}
+
+function restoreCurrent() {
+  const current=JSON.parse(JSON.stringify(saved));
+  const draft=restoreDraft();
+  if (Object.prototype.hasOwnProperty.call(current,draft.card_id)
+      || JSON.stringify(draft)!==renderedDraft) current[draft.card_id]=draft;
+  return current;
+}
+
+function storageSnapshot() {
+  return Object.fromEntries([KEY,...LEGACY_KEYS].map(key=>[key,localStorage.getItem(key)]));
+}
+
+function closeRestore() {
+  restoreRead++;
+  restorePreview=null;
+  $('restorePreview').hidden=true;
+  $('restoreRows').replaceChildren();
+  $('restoreFile').value='';
+  $('applyRestore').disabled=true;
+  notifyHeight();
+}
+
+$('import').onclick=function() { $('restoreFile').click(); };
+$('cancelRestore').onclick=closeRestore;
+$('restoreFile').onchange=async function() {
+  const file=this.files[0];
+  closeRestore();
+  if (!file) return;
+  const read=restoreRead;
+  $('restoreStatus').textContent='Bestand lokaal controleren…';
+  try {
+    if (file.size>MAX_RESTORE_BYTES) throw new Error('Bestand is te groot (maximaal 5 MB).');
+    const text=await file.text();
+    if (read!==restoreRead) return;
+    const parsed=parseGoldExport(text,ITEMS);
+    if (storageReadFailed || !saved || typeof saved!=='object' || Array.isArray(saved)) {
+      throw new Error('Bestaande lokale opslag is niet leesbaar. Bewaar die gegevens voordat je herstelt.');
+    }
+    const expected=storageSnapshot();
+    if (JSON.stringify(expected)!==JSON.stringify(knownStorage)) {
+      throw new Error('Lokale gegevens zijn in een ander tabblad gewijzigd. Herlaad de pagina voordat je importeert.');
+    }
+    const current=restoreCurrent();
+    const plan=planGoldRestore(parsed,current);
+    restorePreview={plan,expected,current:JSON.stringify(current)};
+    $('restoreSummary').textContent=parsed.version+' · '+plan.added+' herstellen · '+(plan.rows.length-plan.added)+' bestaande kaarten overslaan. Bestaande beoordelingen blijven volledig behouden.';
+    for (const row of plan.rows) {
+      const item=ITEMS.find(item=>item.card_id===row.label.card_id);
+      const label=row.label;
+      const details=document.createElement('details');
+      const summary=document.createElement('summary');
+      summary.textContent=item.card_id+' · '+item.name+' · '+(label.confirmed?'Gold bevestigd':'onbevestigd')+' · '+(row.conflict?'overslaan: bestaat lokaal':'herstellen');
+      details.appendChild(summary);
+      const values=document.createElement('pre');
+      // textContent keeps file notes as text, never executable HTML.
+      values.textContent=JSON.stringify({mode:label.mode,note:label.note,outer:label.outer,inner:label.inner,
+        tilt:label.tilt,tilt_ai:label.tilt_ai,pivot:label.pivot,pan:label.pan,edits:label.edits,
+        asset_revision:label.asset_revision,seed_revision:label.seed_revision,
+        image_path:imagePathFor(item,label)},null,2);
+      details.appendChild(values);
+      $('restoreRows').appendChild(details);
+    }
+    $('restorePreview').hidden=false;
+    $('applyRestore').disabled=plan.added===0;
+    $('restoreStatus').textContent='Controleer de kaarten hieronder en bevestig het herstel. Het bestand blijft op dit apparaat. Afbeeldingen zitten niet in de export.';
+    notifyHeight();
+  } catch (error) {
+    if (read!==restoreRead) return;
+    closeRestore();
+    $('restoreStatus').textContent='Niet geïmporteerd: '+error.message;
+  }
+};
+
+$('applyRestore').onclick=function() {
+  if (!restorePreview) return;
+  try {
+    if (drag || JSON.stringify(restoreCurrent())!==restorePreview.current) {
+      throw new Error('De huidige beoordeling is gewijzigd. Selecteer het bestand opnieuw voor een actuele voorvertoning.');
+    }
+    const {plan,expected}=restorePreview;
+    commitGoldRestore(localStorage,KEY,expected,plan);
+    saved=plan.next;
+    knownStorage=storageSnapshot();
+    const count=plan.added;
+    closeRestore();
+    render();
+    $('restoreStatus').textContent=count+' beoordelingen lokaal hersteld. Bestaande beoordelingen zijn behouden.';
+  } catch (error) {
+    closeRestore();
+    $('restoreStatus').textContent='Niet geïmporteerd: '+error.message;
+  }
+};
 
 window.addEventListener('resize',notifyHeight);
 render();

@@ -2,12 +2,14 @@ name: Browser compatibility check
 
 on:
   push:
-    branches: [main, fix/review-v16-safe-crops]
+    branches: [main, fix/review-v16-safe-crops, feat/safe-gold-json-restore]
     paths:
       - 'index.html'
       - 'review.html'
       - 'review.css'
       - 'review.js'
+      - 'review-restore.js'
+      - 'tests/review-restore*.mjs'
       - 'cards/**'
       - 'tests/browser-compat.mjs'
       - 'training/**'
@@ -44,6 +46,7 @@ jobs:
           npm ci
           npm run test:student
           npm run test:state
+          npm run test:restore
           npm run build
 
       - name: Install browser engines
@@ -58,6 +61,9 @@ jobs:
 
       - name: Test Chromium Firefox and WebKit
         run: node tests/browser-compat.mjs
+
+      - name: Test local Gold restore in Chromium Firefox and WebKit
+        run: npm run test:restore:browser
 
       - name: Upload browser screenshots
         if: always()

@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Centering Self Check v0.16</title>
-  <link rel="stylesheet" href="review.css?v=16-safe-crops">
+  <link rel="stylesheet" href="review.css?v=16-restore">
 </head>
 <body>
   <header>
@@ -148,9 +148,23 @@
       <label for="note">Notitie</label>
       <textarea id="note" placeholder="Alleen indien nuttig..."></textarea>
       <div class="controls"><button class="primary" id="save">Bevestig → volgende</button><button id="skip">Skip</button><button id="export">Export Gold labels JSON</button></div>
+      <section class="restorePanel" aria-labelledby="restoreTitle">
+        <h3 id="restoreTitle">Gold-beoordelingen herstellen</h3>
+        <button id="import">Import Gold labels JSON</button>
+        <input id="restoreFile" type="file" accept=".json,application/json" hidden aria-label="Selecteer een Gold-export">
+        <p id="restoreStatus" role="status" aria-live="polite">Selecteer een eerdere export. Controle en herstel gebeuren uitsluitend lokaal.</p>
+        <div id="restorePreview" hidden>
+          <p id="restoreSummary"></p>
+          <div id="restoreRows"></div>
+          <div class="controls">
+            <button id="applyRestore" class="primary" disabled>Herstel ontbrekende beoordelingen</button>
+            <button id="cancelRestore">Annuleren</button>
+          </div>
+        </div>
+      </section>
       <div class="muted footnote">Gebruik de magenta lijn zodra een consistente overgang tussen border en binnenste printvlak zichtbaar is, ook bij full-art- en illustration-kaarten. Kies Reference/template alleen als zo'n overgang werkelijk ontbreekt. Hoekpunten, meetpunten en waarden worden lokaal als Gold label opgeslagen.</div>
     </aside>
   </main>
-  <script type="module" src="review.js?v=16"></script>
+  <script type="module" src="review.js?v=16-restore"></script>
 </body>
 </html>

@@ -21,6 +21,17 @@ for (const [name,engine] of Object.entries({chromium,firefox,webkit})) {
     const errors=[];
     page.on('pageerror',error=>errors.push(error.message));
     await page.route('**/cards/**',route=>route.fulfill({contentType:'image/svg+xml',body:'<svg xmlns="http://www.w3.org/2000/svg" width="630" height="880"><rect width="630" height="880" fill="#222"/></svg>'}));
+    await page.goto(new URL('/',url).href);
+    await page.frameLocator('#reviewFrame').locator('#import').waitFor();
+    const frame=page.frames().find(candidate=>candidate.url().includes('/review.html'));
+    await upload(frame);
+    await frame.locator('#restorePreview:not([hidden])').waitFor();
+    await frame.locator('#restoreRows summary').click();
+    await page.waitForFunction(()=>{
+      const frame=document.querySelector('#reviewFrame');
+      return frame.clientHeight>=frame.contentDocument.querySelector('main').scrollHeight;
+    });
+    assert.equal(await stored(page),null,'embedded preview must not persist');
     await page.goto(url);
     await page.locator('#title').waitFor();
     await upload(page);

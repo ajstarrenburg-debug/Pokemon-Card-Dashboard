@@ -74,7 +74,7 @@ function syncReviewViewport(){
     frame.contentWindow?.postMessage({type:'review-viewport',top:Math.max(8,headerBottom-frame.getBoundingClientRect().top+10),height:Math.max(300,window.innerHeight-headerBottom-10)},'*');
   });
 }
-function setFrameHeight(h){if(Number.isFinite(h)&&h>=700&&h<=2600)frame.style.height=Math.ceil(h)+'px'}
+function setFrameHeight(h){if(Number.isFinite(h)&&h>=700&&h<=6000)frame.style.height=Math.ceil(h)+'px'}
 function markQueue(cardId){queueButtons.forEach(button=>{const selected=button.dataset.cardId===cardId;button.classList.toggle('active',selected);if(selected)button.setAttribute('aria-current','true');else button.removeAttribute('aria-current')})}
 function sendCard(cardId){pendingCardId=cardId;markQueue(cardId);frame.contentWindow?.postMessage({type:'review-select-card',cardId},'*')}
 queueButtons.forEach(button=>button.addEventListener('click',()=>{sendCard(button.dataset.cardId);document.getElementById('inner-review').scrollIntoView({block:'start'})}));

@@ -1167,6 +1167,7 @@ $('restoreFile').onchange=async function() {
       const item=ITEMS.find(item=>item.card_id===row.label.card_id);
       const label=row.label;
       const details=document.createElement('details');
+      details.addEventListener('toggle',notifyHeight);
       const summary=document.createElement('summary');
       summary.textContent=item.card_id+' · '+item.name+' · '+(label.confirmed?'Gold bevestigd':'onbevestigd')+' · '+(row.conflict?'overslaan: bestaat lokaal':'herstellen');
       details.appendChild(summary);

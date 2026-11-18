@@ -12,7 +12,7 @@ for(const [name,engine] of Object.entries({chromium,firefox,webkit})){
       const frame=page.frameLocator('#reviewFrame');
       await frame.locator('#img').waitFor({state:'visible'});
       await frame.locator('#showOuter').click();
-      assert.equal(await frame.locator('#outerRect').getAttribute('points'),'60,54 619,63 605,841 42,832');
+      assert.equal(await frame.locator('#outerRect').getAttribute('points'),'59,52 619,62 605,839 45,831');
       assert.equal(await frame.locator('#innerGroup').evaluate(el=>el.classList.contains('locked')),true);
       assert.equal(await frame.locator('#showOuter').getAttribute('aria-pressed'),'true');
       const original=await frame.locator('#outerRect').getAttribute('points');

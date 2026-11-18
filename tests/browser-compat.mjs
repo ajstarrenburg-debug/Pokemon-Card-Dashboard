@@ -90,11 +90,13 @@ for (const [name,engine] of Object.entries(engines)) {
         };
       });
       result.innerAvailability.push({cardId,...innerState});
-      if (cardIds.indexOf(cardId)>=8) {
+      {
+        await frame.locator('#showBoth').click();
         await frame.locator('.cardwrap').screenshot({path:'browser-'+name+'-'+cardId+'.png'});
       }
     }
 
+    await frame.locator('#showOuter').click();
     await page.locator('.queueCard[data-card-id="A-B03-P4"]').click();
     await waitForCard(frame,'A-B03-P4');
     result.lapras=await frame.evaluate(function() {
@@ -393,7 +395,7 @@ for (const [name,engine] of Object.entries(engines)) {
       }
     }
     const reshiram=v15State['A-B01-P5'];
-    assert(reshiram.asset_revision===16&&reshiram.seed_revision===16&&!reshiram.confirmed&&reshiram.tilt===-1.6&&reshiram.pan.x===0&&reshiram.outer.TL.x===95,'Reshiram kept stale crop coordinates');
+    assert(reshiram.asset_revision===16&&reshiram.seed_revision===16&&!reshiram.confirmed&&reshiram.tilt===0&&reshiram.pan.x===0&&reshiram.outer.TL.x===105,'Reshiram kept stale crop coordinates');
     assert(laterImage==='cards/v15/A-B05-P4.jpg?v=16','later confirmation lost its original image');
     const oldBackup=await v15Page.evaluate(()=>JSON.parse(localStorage.getItem('pokemon_centering_gold_v15')));
     assert(JSON.stringify(oldBackup)===JSON.stringify(v15Fixture),'v15 backup was overwritten');

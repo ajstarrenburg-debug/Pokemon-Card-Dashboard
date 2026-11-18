@@ -90,12 +90,20 @@ test('measurement endpoints have explicit separate export series',()=>{
   assert.equal(target.measurement_sample_space,'rectified_common_cross_sections');assert.equal(target.keypoint_sample_space,'review_canvas');
 });
 test('reviewed proposal preserves confirmed and manual labels',()=>{
-  const a=boot();const seed=clone(a.run('cur'));assert.equal(seed.outer.TL.x,60);assert.equal(seed.proposal_revision,1);
+  const a=boot();const seed=clone(a.run('cur'));assert.equal(seed.outer.TL.x,59);assert.equal(seed.proposal_revision,1);
   for(const confirmed of [true,false]){
     const legacy={...seed,confirmed,proposal_revision:0,edits:{},outer:{TL:{x:23,y:34},TR:{x:591,y:36},BR:{x:589,y:849},BL:{x:21,y:848}}};
     const b=boot({pokemon_centering_gold_v16:JSON.stringify({[seed.card_id]:legacy})});
     assert.deepEqual(clone(b.run('cur.outer')),legacy.outer);
   }
+});
+test('legacy image reset never adopts new image proposal coordinates',()=>{
+  const a=boot();const seed=clone(a.run("stateFor(ITEMS.find(item=>item.seed_revision===16))"));
+  const legacy={...seed,confirmed:true,asset_revision:15,seed_revision:13,tilt:1.25,outer:{TL:{x:23,y:34},TR:{x:591,y:36},BR:{x:589,y:849},BL:{x:21,y:848}}};
+  delete legacy.ai_outer;delete legacy.ai_inner;delete legacy.tilt_ai;
+  const b=boot({pokemon_centering_gold_v16:JSON.stringify({[seed.card_id]:legacy})});
+  b.run("idx=ITEMS.findIndex(item=>item.card_id==='"+seed.card_id+"');cur=stateFor(ITEMS[idx]);render();");
+  b.el('reset').onclick();assert.deepEqual(clone(b.run('cur.outer')),legacy.outer);assert.equal(b.run('cur.tilt'),1.25);
 });
 test('keyboard edge correction is named and undoable',()=>{
   const a=boot();const handle=a.el('osL'),before=clone(a.run('cur.outer'));

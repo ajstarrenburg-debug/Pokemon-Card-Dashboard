@@ -55,8 +55,8 @@ A raw recovery download is provided; it is explicitly not a training-label expor
 The label export includes drafts and marks them as such; the dataset builder admits
 only confirmed, eligible examples and excludes `not_measurable` records.
 
-The reviewed Gengar start proposal is tied to `cards/A-B03-P5.jpg` without changing
-that JPEG. It follows visually inspected straight border intersections rather than
+The sixteen image-bound start proposals are tied to the current public JPEGs,
+without changing those images. Gengar is the first detailed reference example. It follows visually inspected straight border intersections rather than
 the holder. It is a proposal, not calibrated ground truth. Existing confirmed or
 manually changed points are never replaced by this new proposal. An older untouched
 proposal is refreshed only when geometry and edit/registration metadata agree that

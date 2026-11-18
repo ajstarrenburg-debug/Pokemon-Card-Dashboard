@@ -29,8 +29,23 @@ const REVIEW_REVISION = 'review-v16.1';
 // Straight edge intersections, not the rounded corner tips or holder contour.
 const REVIEWED_PROPOSALS = {
   'A-B03-P5': {revision:1,
-    outer:{TL:{x:60,y:54},TR:{x:619,y:63},BR:{x:605,y:841},BL:{x:42,y:832}},
-    inner:{TL:{x:82,y:78},TR:{x:596,y:86},BR:{x:582,y:814},BL:{x:65,y:806}}}
+    outer:{TL:{x:59,y:52},TR:{x:619,y:62},BR:{x:605,y:839},BL:{x:45,y:831}},
+    inner:{TL:{x:84,y:76},TR:{x:597,y:84},BR:{x:582,y:818},BL:{x:69,y:809}}},
+  'A-B12-P5':{revision:1,outer:{TL:{x:24,y:39},TR:{x:570,y:54},BR:{x:542,y:813},BL:{x:1,y:797}},inner:{TL:{x:48,y:62},TR:{x:547,y:76},BR:{x:520,y:789},BL:{x:25,y:775}}},
+  'A-B13-P1':{revision:1,outer:{TL:{x:6,y:66},TR:{x:567,y:54},BR:{x:586,y:840},BL:{x:24,y:854}},inner:{TL:{x:28,y:88},TR:{x:543,y:77},BR:{x:561,y:817},BL:{x:46,y:830}}},
+  'A-B14-P6':{revision:1,outer:{TL:{x:65,y:30},TR:{x:629,y:47},BR:{x:610,y:832},BL:{x:45,y:813}},inner:{TL:{x:87,y:52},TR:{x:607,y:68},BR:{x:587,y:807},BL:{x:68,y:790}}},
+  'A-B03-P4':{revision:1,outer:{TL:{x:94,y:149},TR:{x:537,y:148},BR:{x:537,y:765},BL:{x:93,y:768}},inner:{TL:{x:112,y:169},TR:{x:520,y:168},BR:{x:520,y:748},BL:{x:111,y:751}}},
+  'A-B07-P4':{revision:1,outer:{TL:{x:6,y:57},TR:{x:566,y:52},BR:{x:573,y:836},BL:{x:8,y:842}},inner:{TL:{x:30,y:79},TR:{x:543,y:75},BR:{x:549,y:813},BL:{x:32,y:819}}},
+  'A-B10-P6':{revision:1,outer:{TL:{x:25,y:21},TR:{x:587,y:34},BR:{x:570,y:818},BL:{x:8,y:804}},inner:{TL:{x:47,y:42},TR:{x:566,y:56},BR:{x:549,y:796},BL:{x:31,y:783}}},
+  'A-B16-P5':{revision:1,outer:{TL:{x:22,y:62},TR:{x:565,y:67},BR:{x:553,y:827},BL:{x:9,y:823}},inner:{TL:{x:44,y:84},TR:{x:544,y:88},BR:{x:533,y:805},BL:{x:31,y:802}}},
+  'A-B01-P5':{revision:1,outer:{TL:{x:105,y:139},TR:{x:562,y:151},BR:{x:545,y:790},BL:{x:86,y:776}},inner:{TL:{x:123,y:160},TR:{x:542,y:172},BR:{x:526,y:771},BL:{x:105,y:757}}},
+  'A-B05-P4':{revision:1,outer:{TL:{x:95,y:136},TR:{x:573,y:134},BR:{x:575,y:803},BL:{x:95,y:802}},inner:{TL:{x:115,y:157},TR:{x:554,y:154},BR:{x:554,y:784},BL:{x:115,y:784}}},
+  'A-B15-P1':{revision:1,outer:{TL:{x:98,y:113},TR:{x:576,y:114},BR:{x:576,y:781},BL:{x:99,y:783}},inner:{TL:{x:118,y:133},TR:{x:557,y:134},BR:{x:556,y:762},BL:{x:117,y:763}}},
+  'A-B15-P2':{revision:1,outer:{TL:{x:106,y:136},TR:{x:578,y:142},BR:{x:568,y:805},BL:{x:96,y:797}},inner:{TL:{x:126,y:157},TR:{x:558,y:162},BR:{x:549,y:784},BL:{x:117,y:777}}},
+  'A-B04-P6':{revision:1,outer:{TL:{x:62,y:122},TR:{x:571,y:119},BR:{x:562,y:830},BL:{x:55,y:824}},inner:{TL:{x:82,y:143},TR:{x:551,y:139},BR:{x:543,y:809},BL:{x:76,y:804}}},
+  'A-B09-P4':{revision:1,outer:{TL:{x:85,y:115},TR:{x:575,y:120},BR:{x:564,y:803},BL:{x:75,y:797}},inner:{TL:{x:105,y:136},TR:{x:554,y:140},BR:{x:544,y:783},BL:{x:96,y:777}}},
+  'A-B10-P5':{revision:1,outer:{TL:{x:117,y:115},TR:{x:584,y:126},BR:{x:562,y:776},BL:{x:94,y:765}},inner:{TL:{x:136,y:137},TR:{x:565,y:146},BR:{x:544,y:755},BL:{x:114,y:745}}},
+  'A-B13-P6':{revision:1,outer:{TL:{x:58,y:125},TR:{x:537,y:126},BR:{x:526,y:795},BL:{x:47,y:789}},inner:{TL:{x:78,y:144},TR:{x:518,y:146},BR:{x:507,y:775},BL:{x:68,y:769}}}
 };
 const $ = function(id) { return document.getElementById(id); };
 let idx = 0;
@@ -126,6 +141,7 @@ function innerSeed(item) {
 }
 
 function aiTilt(item) {
+  if(REVIEWED_PROPOSALS[item.card_id])return 0;
   return Number(item.tilt_ai || 0);
 }
 
@@ -165,17 +181,19 @@ function stateFor(item) {
     const updateUnconfirmedMode = !Boolean(existing.confirmed)
       && Number(item.mode_revision || 14) > Number(existing.mode_revision || 14);
     const legacyInner = existing.inner || existing.box;
+    const retainsOldImage = !resetForNewAsset && item.seed_revision === 16
+      && Number(existing.asset_revision || (Number(existing.seed_revision) >= 16 ? 16 : 15)) < 16;
     return {
       ...existing,
       card_id:item.card_id,
       outer:resetForNewAsset || refreshProposal ? cloneQuad(outerAI) : normalizeQuad(existing.outer,outerAI),
       inner:resetForNewAsset || refreshProposal ? cloneQuad(innerAI) : normalizeQuad(legacyInner,innerAI),
-      ai_outer:resetForNewAsset ? cloneQuad(outerAI) : normalizeQuad(existing.ai_outer,outerAI),
-      ai_inner:resetForNewAsset ? cloneQuad(innerAI) : normalizeQuad(existing.ai_inner,innerAI),
-      tilt:resetForNewAsset ? aiTilt(item) : (Number.isFinite(Number(existing.tilt)) ? Number(existing.tilt) : aiTilt(item)),
-      tilt_ai:resetForNewAsset ? aiTilt(item) : (Number.isFinite(Number(existing.tilt_ai)) ? Number(existing.tilt_ai) : aiTilt(item)),
-      pivot:resetForNewAsset ? pivotSeed() : (existing.pivot ? point(existing.pivot.x,existing.pivot.y) : pivotSeed()),
-      pan:resetForNewAsset ? panSeed() : (existing.pan ? point(existing.pan.x,existing.pan.y) : point(existing.pan_x || 0,existing.pan_y || 0)),
+      ai_outer:resetForNewAsset ? cloneQuad(outerAI) : normalizeQuad(existing.ai_outer,retainsOldImage ? existing.outer || outerAI : outerAI),
+      ai_inner:resetForNewAsset ? cloneQuad(innerAI) : normalizeQuad(existing.ai_inner,retainsOldImage ? legacyInner || innerAI : innerAI),
+      tilt:resetForNewAsset || refreshProposal ? aiTilt(item) : (Number.isFinite(Number(existing.tilt)) ? Number(existing.tilt) : aiTilt(item)),
+      tilt_ai:resetForNewAsset || refreshProposal ? aiTilt(item) : (Number.isFinite(Number(existing.tilt_ai)) ? Number(existing.tilt_ai) : (retainsOldImage ? Number(existing.tilt || 0) : aiTilt(item))),
+      pivot:resetForNewAsset || refreshProposal ? pivotSeed() : (existing.pivot ? point(existing.pivot.x,existing.pivot.y) : pivotSeed()),
+      pan:resetForNewAsset || refreshProposal ? panSeed() : (existing.pan ? point(existing.pan.x,existing.pan.y) : point(existing.pan_x || 0,existing.pan_y || 0)),
       edits:resetForNewAsset ? editSeed() : {...editSeed(),...(existing.edits || {})},
       mode:resetForNewAsset || updateUnconfirmedMode ? item.mode : (existing.mode || item.mode),
       mode_revision:item.mode_revision || existing.mode_revision || 14,
@@ -1223,13 +1241,15 @@ $('mode').onchange=function() {
 $('reset').onclick=function() {
   remember();markChanged();
   const item=ITEMS[idx];
-  cur.outer=outerSeed(item);
-  cur.inner=innerSeed(item);
-  cur.ai_outer=outerSeed(item);
-  cur.ai_inner=innerSeed(item);
+  const oldImage=item.seed_revision===16&&cur.asset_revision<16;
+  const outer=oldImage?cloneQuad(cur.ai_outer||cur.outer):outerSeed(item);
+  const inner=oldImage?cloneQuad(cur.ai_inner||cur.inner):innerSeed(item);
+  const tilt=oldImage?cur.tilt_ai:aiTilt(item);
+  cur.outer=outer;cur.inner=inner;
+  cur.ai_outer=cloneQuad(outer);cur.ai_inner=cloneQuad(inner);
   cur.mode=item.mode;
-  cur.tilt=aiTilt(item);
-  cur.tilt_ai=aiTilt(item);
+  cur.tilt=tilt;
+  cur.tilt_ai=tilt;
   cur.pivot=pivotSeed();
   cur.pan=panSeed();
   cur.edits=editSeed();

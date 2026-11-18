@@ -50,6 +50,7 @@ jobs:
           npm run test:student
           npm run test:state
           npm run test:geometry
+          npm run test:reliability
           npm run build
 
       - name: Install browser engines
@@ -67,6 +68,9 @@ jobs:
 
       - name: Test perspective and invalid geometry in three browsers
         run: npm run test:geometry:browser
+
+      - name: Test reliable review and recovery in three browsers
+        run: npm run test:reliability:browser
 
       - name: Upload browser screenshots
         if: always()

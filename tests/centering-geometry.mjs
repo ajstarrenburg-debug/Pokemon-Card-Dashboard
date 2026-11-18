@@ -38,7 +38,7 @@ for(const test of fixtures){
       same(roundTrip.x,sample.inner.x);same(roundTrip.y,sample.inner.y);
     }
     const target=api.buildStudentTarget(test.state,item);
-    assert.equal(target.measurement_method,'outer-card-plane-v1');
+    assert.equal(target.measurement_method,'outer-card-plane-v2');
     assert.equal(target.outer_keypoints.length,12);
     assert.equal(target.inner_keypoints.length,12);
   }

@@ -3,12 +3,12 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Centering Self Check v0.16</title>
-  <link rel="stylesheet" href="review.css?v=16-safe-crops">
+  <title>Centering Self Check v0.16.1</title>
+  <link rel="stylesheet" href="review.css?v=16.1">
 </head>
 <body>
   <header>
-    <b>Centering Self Check v0.16</b>
+    <b>Centering Self Check v0.16.1</b>
     <span class="progress" id="prog"></span>
     <span class="spacer"></span>
     <button id="prev" aria-label="Vorige kaart">←</button>
@@ -78,11 +78,42 @@
     <aside class="side">
       <h2 id="title"></h2>
       <div class="muted" id="meta"></div>
+      <div id="reviewStatus" class="reviewStatus draft" role="status" aria-live="polite">Voorstel · nog controleren</div>
+      <div id="storageWarning" class="warn" role="alert" hidden></div>
       <div class="instruction" id="instruction">
-        <b>Korte meetinstructie</b> · Zet de kaart eerst recht. Plaats daarna het <b>midden van de dunne cyaanlijn</b> op de fysieke kaartrand en het <b>midden van de dunne magentalijn</b> op de overgang naar het binnenste printvlak.
+        <b>Korte meetinstructie</b> · Controleer eerst de fysieke kaart, daarna de printgrens. Volg bij afgeronde hoeken de snijpunten van de verlengde rechte randen; niet de houder of sleeve. Plaats daarna het <b>midden van de dunne cyaanlijn</b> op de fysieke kaartrand en het <b>midden van de dunne magentalijn</b> op de overgang naar het binnenste printvlak.
         <span class="rule">De stippellijn is alleen kijkhulp; de 1px-kernlijn is de echte meting.</span>
       </div>
 
+      <div class="grid">
+        <div class="metric">Links / Rechts<br><b id="lr">—</b><small id="lrSpread">—</small></div>
+        <div class="metric">Boven / Onder<br><b id="tb">—</b><small id="tbSpread">—</small></div>
+      </div>
+      <div class="layers" aria-label="Meetstappen">
+        <button id="showOuter">1 · Buitenrand</button>
+        <button id="showInner">2 · Binnenrand</button>
+        <button id="showBoth">3 · Beide controleren</button>
+        <button id="showTilt">Beeldpositie</button>
+      </div>
+      <button id="toggleMeasures" class="measureToggle" aria-pressed="true">Meetpunten: aan</button>
+      <div id="layerHint" class="layerHint"></div>
+
+      <section class="loupePanel">
+        <div class="loupeHead"><b>Rand in detail</b><span id="loupeLabel">Beweeg of sleep over een meetlijn</span></div>
+        <canvas id="loupe" width="700" height="350" aria-label="Vergroot beeld rond de geselecteerde meetlijn"></canvas>
+        <div class="loupeRule">Dunne kern = lijnpositie · stippellijn = kijkhulp. Controleer de lijn op de echte overgang.</div>
+        <div class="edgeChoices" aria-label="Kies een rand">
+          <button id="selectL">Links</button><button id="selectR">Rechts</button><button id="selectT">Boven</button><button id="selectB">Onder</button>
+        </div>
+        <div id="selectionLabel" class="muted" aria-live="polite">Kies een rand</div>
+        <div class="precisionControls">
+          <button id="nudgeOut">Naar buiten</button>
+          <label>Stap <select id="nudgeStep"><option value="0.25">Fijn · ¼ px</option><option value="1" selected>1 px</option><option value="4">4 px</option></select></label>
+          <button id="nudgeIn">Naar binnen</button>
+        </div>
+      </section>
+
+      <details id="alignmentDetails"><summary>Beeld rechtzetten of verschuiven</summary>
       <section class="tiltPanel">
         <div class="tiltHead"><b>1 · Beeldpositie en tilt</b><output id="tiltValue" for="tilt">0,00°</output></div>
         <input id="tilt" type="range" min="-4" max="4" step="0.05" value="0" aria-label="Draai de kaart in graden">
@@ -100,21 +131,7 @@
         <div id="tiltHint" class="tiltHint"></div>
       </section>
 
-      <div class="layers">
-        <button id="showTilt">Rechtzetten</button>
-        <button id="showOuter">Buitenrand</button>
-        <button id="showInner">Binnenrand</button>
-        <button id="showBoth">Beide</button>
-      </div>
-      <button id="toggleMeasures" class="measureToggle" aria-pressed="true">Meetpunten: aan</button>
-      <div id="layerHint" class="layerHint"></div>
-
-      <section class="loupePanel">
-        <div class="loupeHead"><b>Vergrootglas ×7</b><span id="loupeLabel">Beweeg of sleep over een meetlijn</span></div>
-        <canvas id="loupe" width="700" height="350" aria-label="Vergroot beeld rond de geselecteerde meetlijn"></canvas>
-        <div class="loupeRule">Witte kern = exacte meting · gekleurde stippellijn = kijkhulp</div>
-      </section>
-
+      </details>
       <div id="warning"></div>
       <label for="mode">Meetmodus</label>
       <select id="mode">
@@ -124,17 +141,12 @@
       </select>
 
       <div id="measurementWarning" class="warn" role="status" aria-live="polite" hidden></div>
-      <div class="muted">Meting na perspectiefcorrectie op de vier buitenhoeken. Variatie tussen meetpunten is geen foutmarge.</div>
+      <div class="methodNote">Perspectiefcorrectie op de vier fysieke buitenhoeken. Slechtste van drie gezamenlijke doorsneden; geen volledige rand- of gradingbeoordeling. Millimeters gaan uit van 63 × 88 mm.</div>
 
-      <div class="grid">
-        <div class="metric">L/R centering<br><b id="lr">—</b><small id="lrSpread">—</small></div>
-        <div class="metric">T/B centering<br><b id="tb">—</b><small id="tbSpread">—</small></div>
-        <div class="metric">Outer AI<br><b id="outerStatus">—</b></div>
-        <div class="metric">Inner AI<br><b id="innerStatus">—</b></div>
-      </div>
-
+      <details class="measurementDetails"><summary>Afstandsmetingen en trainingsinformatie</summary>
+      <div class="muted">Buitenvoorstel: <span id="outerStatus"></span> · Binnenvoorstel: <span id="innerStatus"></span></div>
       <section class="measureBox">
-        <h3><span>Meetpunten in millimeter</span><span id="measureSource" class="measureSource">AI-voorstel</span></h3>
+        <h3><span>Afstanden in millimeter</span><span id="measureSource" class="measureSource">AI-voorstel</span></h3>
         <table class="measureTable">
           <thead><tr><th>Zijde</th><th>P1</th><th>P2</th><th>P3</th></tr></thead>
           <tbody>
@@ -144,16 +156,18 @@
             <tr><td>Onder</td><td id="mB1">—</td><td id="mB2">—</td><td id="mB3">—</td></tr>
           </tbody>
         </table>
-        <div id="studentBadge" class="studentBadge"><b>AI-student:</b> 24 zichtbare keypoints (12 buiten + 12 binnen). De slechtste P1/P2/P3-verhouding bepaalt de getoonde centering.</div>
+        <div id="studentBadge" class="studentBadge">De afstandsmetingen en de oorspronkelijke trainingskeypoints zijn afzonderlijke reeksen.</div>
       </section>
 
-      <div class="controls"><button id="reset">Reset AI</button><button id="undo">Undo</button></div>
+      </details>
+      <div class="controls"><button id="reset">Reset startlijnen</button><button id="undo">Undo</button></div>
       <label for="note">Notitie</label>
       <textarea id="note" placeholder="Alleen indien nuttig..."></textarea>
-      <div class="controls"><button class="primary" id="save">Bevestig → volgende</button><button id="skip">Skip</button><button id="export">Export Gold labels JSON</button></div>
+      <div class="controls"><button class="primary" id="save">Bevestig → volgende</button><button id="skip">Skip</button><button id="export">Export labels JSON · incl. concepten</button></div>
+      <div class="controls recoveryControls"><button id="retrySave">Concept opslaan</button><button id="backup">Herstelbestand downloaden</button></div>
       <div class="muted footnote">Gebruik de magenta lijn zodra een consistente overgang tussen border en binnenste printvlak zichtbaar is, ook bij full-art- en illustration-kaarten. Kies Reference/template alleen als zo'n overgang werkelijk ontbreekt. Hoekpunten, meetpunten en waarden worden lokaal als Gold label opgeslagen.</div>
     </aside>
   </main>
-  <script type="module" src="review.js?v=16"></script>
+  <script type="module" src="review.js?v=16.1"></script>
 </body>
 </html>

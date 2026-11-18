@@ -150,11 +150,13 @@ for (const [name,engine] of Object.entries(engines)) {
         innerHaloDash:getComputedStyle(document.querySelector('#innerHalo')).strokeDasharray,
         hitWidth:getComputedStyle(document.querySelector('#ihL')).strokeWidth,
         sideHandles:document.querySelectorAll('.sideHandle').length,
-        tiltActive:document.querySelector('#showTilt').classList.contains('activeTilt'),
+        outerActive:document.querySelector('#showOuter').classList.contains('activeOuter'),
         controlsBesideCard:side.left>=card.right&&Math.abs(side.top-card.top)<24
       };
     });
 
+    await frame.locator('#alignmentDetails').evaluate(el=>el.open=true);
+    await frame.locator('.measurementDetails').evaluate(el=>el.open=true);
     result.buttonLayout=await frame.evaluate(function() {
       const groups=['.layers','.tiltButtons'].map(function(selector) {
         const buttons=Array.from(document.querySelectorAll(selector+' button'));
@@ -211,7 +213,7 @@ for (const [name,engine] of Object.entries(engines)) {
     });
     await frame.locator('#tiltAI').click();
 
-    await frame.locator('#showOuter').click();
+    await frame.locator('#showInner').click();
     const innerBefore=await frame.locator('#innerRect').getAttribute('points');
     const innerHit=frame.locator('#ihL');
     const innerBox=await innerHit.boundingBox();
@@ -416,7 +418,7 @@ for (const [name,engine] of Object.entries(engines)) {
     assert(result.initial.outerHaloDash!=='none'&&result.initial.innerHaloDash!=='none','dashed halos missing');
     assert(parseFloat(result.initial.hitWidth)>=30,'line hit target became too small');
     assert(result.initial.sideHandles===8,'visible side handles missing');
-    assert(result.initial.tiltActive,'tilt should be first step');
+    assert(result.initial.outerActive,'physical outside edge should be first step');
     assert(result.initial.controlsBesideCard,'controls should stay beside card on desktop');
     assert(result.buttonLayout.layers.rows===2&&result.buttonLayout.tilt.rows===2&&result.buttonLayout.layers.noOverflow&&result.buttonLayout.tilt.noOverflow,'button text overlaps or four-button row did not wrap');
     assert(result.iframeHeight>=700&&result.iframeHeight<=2600,'review iframe height is unstable');
@@ -424,7 +426,7 @@ for (const [name,engine] of Object.entries(engines)) {
     assert(result.measurements.numericCells===12,'millimeter table is incomplete');
     assert(result.pan.transform.includes('translate(')&&result.pan.xValue.includes('+24')&&result.pan.yValue.includes('-18')&&result.pan.guidesStayedFixed,'image pan failed');
     assert(result.tilt.transform==='rotate(1.25deg)'&&result.tilt.value.includes('1,25')&&result.tilt.guidesVisible,'tilt workflow failed');
-    assert(result.directInnerDrag.moved&&result.directInnerDrag.selected&&result.directInnerDrag.source==='Gold-correctie'&&result.directInnerDrag.loupeReady==='1','direct magenta drag or loupe failed');
+    assert(result.directInnerDrag.moved&&result.directInnerDrag.selected&&result.directInnerDrag.source==='Handmatig voorstel'&&result.directInnerDrag.loupeReady==='1','direct magenta drag or loupe failed');
     assert(result.quadMoved,'independent corner movement failed');
     assert(result.measureToggle.pressed==='false'&&result.measureToggle.children===0,'measurement toggle failed');
     assert(result.export.filename.includes('v16')&&result.export.version==='centering-gold-v16'&&result.export.schema==='border-keypoints-v1'&&result.export.rule==='centerline_on_visual_transition','v0.16 export metadata failed');

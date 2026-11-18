@@ -53,7 +53,7 @@ for(const [name,engine] of Object.entries({chromium,firefox,webkit})){
       const downloadPromise=page.waitForEvent('download');
       await page.locator('#export').click();const download=await downloadPromise;
       const payload=JSON.parse(await readFile(await download.path(),'utf8'));
-      assert.equal(payload.measurement_method,'outer-card-plane-v1');
+      assert.equal(payload.measurement_method,'outer-card-plane-v2');
       assert.equal(payload.labels.length,1);
       assert.deepEqual(payload.labels[0].outer,demo.outer);
       assert.equal(payload.labels[0].student_target.centering.tb.first,50);

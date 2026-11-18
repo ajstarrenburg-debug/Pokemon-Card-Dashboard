@@ -14,21 +14,43 @@ function validatePoint(point,index,label) {
   assert(typeof point.id === 'string' && /^[LRTB][123]$/.test(point.id),label+' point '+index+' has an invalid id');
 }
 
+function validatePoints(points,label) {
+  points.forEach((point,index)=>validatePoint(point,index,label));
+  assert(new Set(points.map(p=>p.id)).size===EXPECTED_POINTS,label+' has duplicate keypoint IDs');
+}
+
 function validateTarget(target,cardId) {
   assert(target && target.schema === EXPECTED_SCHEMA,cardId+' uses the wrong target schema');
+  assert(['inner_edge','reference_required'].includes(target.mode),cardId+' has an unsupported measurement mode');
   assert(target.rule === 'centerline_on_visual_transition',cardId+' uses the wrong measurement rule');
   assert(Array.isArray(target.outer_keypoints) && target.outer_keypoints.length === EXPECTED_POINTS,cardId+' must have 12 outer keypoints');
-  target.outer_keypoints.forEach(function(point,index) { validatePoint(point,index,cardId+' outer'); });
+  validatePoints(target.outer_keypoints,cardId+' outer');
   if (target.mode === 'inner_edge') {
     assert(Array.isArray(target.inner_keypoints) && target.inner_keypoints.length === EXPECTED_POINTS,cardId+' must have 12 inner keypoints');
-    target.inner_keypoints.forEach(function(point,index) { validatePoint(point,index,cardId+' inner'); });
+    validatePoints(target.inner_keypoints,cardId+' inner');
     assert(target.measurements_mm && target.centering,cardId+' is missing derived measurement targets');
+    for(const side of ['L','R','T','B']) {
+      const values=target.measurements_mm[side];
+      assert(Array.isArray(values)&&values.length===3&&values.every(x=>Number.isFinite(x)&&x>=0),cardId+' has invalid '+side+' distances');
+    }
+    for(const [axis,a,b] of [['lr','L','R'],['tb','T','B']]) {
+      const ratio=target.centering[axis];
+      assert(ratio&&[ratio.first,ratio.second].every(x=>Number.isFinite(x)&&x>=0&&x<=100)&&Math.abs(ratio.first+ratio.second-100)<.001,cardId+' has invalid '+axis+' ratio');
+      const samples=target.measurements_mm[a].map((x,i)=>{
+        const total=x+target.measurements_mm[b][i];assert(total>1e-9,cardId+' has no border at sample '+i);return x/total*100;
+      });
+      const worst=samples.reduce((best,x,i)=>Math.abs(x-50)>Math.abs(samples[best]-50)?i:best,0);
+      assert(Math.abs(samples[worst]-ratio.first)<.03,cardId+' ratio does not match its distances');
+      if(ratio.worst_point!==undefined)assert(Number.isInteger(ratio.worst_point)&&ratio.worst_point>=1&&ratio.worst_point<=3&&Math.abs(samples[ratio.worst_point-1]-50)>=Math.abs(samples[worst]-50)-.03,cardId+' incorrect worst point');
+    }
+    if(target.measurement_method==='outer-card-plane-v2')assert(target.measurement_sample_space==='rectified_common_cross_sections',cardId+' has mismatched sampling metadata');
   } else {
     assert(target.inner_keypoints === null,cardId+' reference target must not contain a fictitious inner border');
   }
 }
 
 export function buildDataset(payload) {
+  assert(!payload?.backup_only,'A raw recovery backup is not a training-label export');
   assert(payload && payload.schema === EXPECTED_SCHEMA,'Input is not a supported keypoint export');
   assert(payload.measurement_rule === 'centerline_on_visual_transition','Input uses the wrong measurement rule');
   assert(Array.isArray(payload.labels),'Input labels are missing');
@@ -36,7 +58,9 @@ export function buildDataset(payload) {
   const excluded=[];
   for (const label of payload.labels) {
     if (!label.confirmed) continue;
+    if(label.mode==='not_measurable'||label.student_target?.mode==='not_measurable'){excluded.push({card_id:label.card_id,reason:'not_measurable'});continue;}
     const target=label.student_target;
+    assert(!target?.source||target.source==='gold_user',label.card_id+' is not a confirmed Gold source');
     validateTarget(target,label.card_id);
     const revision=label.asset_revision || (label.seed_revision >= 16 ? 16 : 15);
     if (target.identity_verified === false || (label.card_id === 'A-B01-P5' && revision < 16)) {
@@ -66,6 +90,7 @@ export function buildDataset(payload) {
     dataset:'pokemon-centering-student-v1',
     schema:EXPECTED_SCHEMA,
     created:new Date().toISOString(),
+    measurement_methods:[...new Set(examples.map(x=>x.target.measurement_method||'legacy_image_axes'))],
     example_count:examples.length,
     excluded:excluded,
     examples:examples
@@ -119,7 +144,7 @@ async function main() {
   process.stdout.write('STUDENT_DATASET_READY '+dataset.example_count+' '+outputPath+'\n');
 }
 
-main().catch(function(error) {
+if(process.argv[1] && new URL(import.meta.url).pathname===new URL('file://'+process.argv[1]).pathname)main().catch(function(error) {
   process.stderr.write(String(error.message || error)+'\n');
   process.exitCode=1;
 });

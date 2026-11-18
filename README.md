@@ -39,31 +39,77 @@ Development dashboard for Pokemon card scan QA, centering and AI-assisted inner-
 The repository contains the webapp/development assets only. Original high-resolution collection scans are intentionally not stored here.
 
 
-## Perspective-correct measurements
+## Review reliability v0.16.1
 
-Measurements use an outer-card-plane homography derived only from the four physical
-card corners. The same transform is applied to the inner print frame. The original
-image and annotation corners remain unchanged; the visible white measurement
-segments are mapped back onto the original image. This assumes a flat rectangular
-card; it does not correct lens distortion or curved cards.
+The existing v16 storage key, images and confirmed image revisions are preserved.
+Changes to geometry, measurement mode, tilt, pan or reset invalidate confirmation.
+The previous confirmed annotation is retained in `confirmation_history`; Undo can
+restore the original reviewed state. Notes can change without invalidating geometry.
+Each new confirmation records a fingerprint of its actual annotation state.
 
-P1/P2/P3 for millimeter measurements are sampled at 25%, 50%, and 75% along each
-rectified inner edge. The worst of these three pairs is reported. Their half-range
-is variation between samples, not a statistical uncertainty interval.
+Concepts autosave after edits and flush on page exit. Invalid concepts may be saved
+as drafts and revisited, but cannot be confirmed or exported as valid measurement
+labels. Storage errors leave the current concept visible and do not report a false
+successful confirmation. Unexpected stored JSON is preserved and not overwritten.
+A raw recovery download is provided; it is explicitly not a training-label export.
+The label export includes drafts and marks them as such; the dataset builder admits
+only confirmed, eligible examples and excludes `not_measurable` records.
 
-Invalid, crossed, collapsed or out-of-card geometry produces no percentage.
-Confirmation, navigation that saves, and export stop until the geometry is repaired
-or an appropriate non-inner measurement mode is chosen. Invalid geometry in an
-older saved record also blocks export; no records are silently omitted.
+The reviewed Gengar start proposal is tied to `cards/A-B03-P5.jpg` without changing
+that JPEG. It follows visually inspected straight border intersections rather than
+the holder. It is a proposal, not calibrated ground truth. Existing confirmed or
+manually changed points are never replaced by this new proposal. An older untouched
+proposal is refreshed only when geometry and edit/registration metadata agree that
+it was not manually changed.
 
-Gold corner coordinates, image revisions and existing review-canvas keypoint
-conventions are preserved. Derived millimeters and ratios are recomputed on save
-or export and can change for previously skewed labels. New targets carry
-`measurement_method: outer-card-plane-v1`,
-`measurement_sample_space: rectified_inner_edges`, and
-`keypoint_sample_space: review_canvas` to distinguish those conventions. Existing
-exports and the training builder remain compatible; old exports are not rewritten.
+The precision view projects the actual annotation endpoints relative to its current
+inspection center. Hovering beside a hit area no longer draws a fictitious centerline
+through the cursor. Both border families remain visible in the detail view; the
+active layer is locked against accidental dragging of the inactive layer. Side
+selection, fractional-pixel nudging and keyboard handle movement are available.
+Outer corrections no longer push inner points silently into a different location.
 
-Run `npm run test:geometry` for the 20 fixed coordinate cases plus general projective
-transforms, preservation of tilted print, invalid data and the no-storage-write guard.
-The fixtures contain only fictional coordinates, not scans or personal Gold data.
+## Perspective-correct measurement protocol
+
+`outer-card-plane-v2` derives one homography only from the four physical card corners.
+It applies the same transformation to the print boundary; a tilted print is not
+independently made square. This assumes a flat rectangular card and a nominal size
+of 63×88 mm. It does not calibrate lens distortion, curved cards, or physical size.
+
+Opposite distances use common cross sections in the rectified card plane. Left/right
+share the same y coordinate in the overlap of their straight inner edges;
+top/bottom share the same x coordinate. Three sections are taken at 25%, 50%, 75%
+of each common interval. The displayed result is explicitly the worst **of three**,
+not the maximum over every part of the border or an official grading prediction.
+The displayed range is the actual minimum/maximum of the first-side percentages,
+not a statistical uncertainty interval around the worst sample.
+
+Original review-canvas training keypoints retain their existing convention. Visible
+measurement endpoints are exported separately under `measurement_points`.
+Targets carry `measurement_method: outer-card-plane-v2`,
+`measurement_sample_space: rectified_common_cross_sections`,
+`measurement_domains`, and `keypoint_sample_space: review_canvas`.
+Derived values are recomputed on label export and can change from earlier methods.
+The dataset declares its methods and validates coordinates, unique IDs, distances,
+ratios and worst-point consistency. Consumers must select a compatible target method
+rather than silently mix legacy and rectified derived values.
+
+Only loaded images with valid visible geometry can be confirmed. Convexity, finite
+coordinates and containment are numerical guards, not proof of a correct visual
+boundary. Use straight edge intersections at rounded corners, not sleeve or holder
+edges. A missing print boundary requires a reference; the reference-assisted matcher
+itself is not built into this module. Unmeasurable examples are explicitly excluded
+from ordinary positive geometry training.
+
+## Verification
+
+- `npm run test:geometry`: 20 independent coordinate cases plus projective/invalid cases.
+- `npm run test:state`: confirmed labels and image-revision migration preservation.
+- `npm run test:reliability`: 18 real-source flow checks, with isolated synthetic storage.
+- `npm run test:student`: dataset conversion self-test.
+- GitHub Actions runs existing compatibility, geometry, reliability and recovery
+  checks in Chromium, Firefox and WebKit, including 1440px and 390px layouts.
+
+No private scans or actual user Gold exports are used in the automated flow tests.
+Image hashes protect retained assets; they do not establish visual annotation accuracy.
+A physical calibration benchmark and a real iPhone touch test remain separate work.

@@ -325,67 +325,147 @@ function setLevelGuides(quad) {
   }
 }
 
-function physicalScale(outer) {
-  const widths = SAMPLE_T.map(function(t) {
-    const left = sidePoint(outer,'L',t);
-    const rightEdge = endpoints(outer,'R');
-    return Math.abs(lineXAtY(rightEdge[0],rightEdge[1],left.y)-left.x);
-  });
-  const heights = SAMPLE_T.map(function(t) {
-    const top = sidePoint(outer,'T',t);
-    const bottomEdge = endpoints(outer,'B');
-    return Math.abs(lineYAtX(bottomEdge[0],bottomEdge[1],top.x)-top.y);
-  });
-  return {x:mean(widths)/CARD_MM.width,y:mean(heights)/CARD_MM.height};
+// Measurements use the physical card plane, never an independently warped print.
+const MEASUREMENT_METHOD = 'outer-card-plane-v1';
+const QUAD_KEYS = ['TL','TR','BR','BL'];
+
+function geometryError(message) {
+  const error = new Error(message);
+  error.code = 'INVALID_MEASUREMENT_GEOMETRY';
+  return error;
+}
+
+function validateMeasurementQuad(quad,label) {
+  if (!quad || !QUAD_KEYS.every(function(key) {
+    return quad[key] && Number.isFinite(quad[key].x) && Number.isFinite(quad[key].y);
+  })) throw geometryError(label+': plaats vier geldige hoeken.');
+  const points = QUAD_KEYS.map(function(key) { return quad[key]; });
+  const span = Math.max(...points.map(p=>p.x))-Math.min(...points.map(p=>p.x));
+  const height = Math.max(...points.map(p=>p.y))-Math.min(...points.map(p=>p.y));
+  const tolerance = Math.max(span,height,1)**2*1e-10;
+  for (let index=0; index<4; index++) {
+    const a=points[index], b=points[(index+1)%4], c=points[(index+2)%4];
+    const cross=(b.x-a.x)*(c.y-b.y)-(b.y-a.y)*(c.x-b.x);
+    if (!Number.isFinite(cross) || cross<=tolerance) {
+      throw geometryError(label+': de lijnen kruisen elkaar of het frame is ingeklapt.');
+    }
+  }
+}
+
+function invertCardMatrix(m) {
+  const [a,b,c,d,e,f,g,h,i]=m;
+  const cofactors=[e*i-f*h,c*h-b*i,b*f-c*e,f*g-d*i,a*i-c*g,c*d-a*f,d*h-e*g,b*g-a*h,a*e-b*d];
+  const determinant=a*cofactors[0]+b*cofactors[3]+c*cofactors[6];
+  if (!Number.isFinite(determinant) || Math.abs(determinant)<1e-12) {
+    throw geometryError('Buitenrand: de hoeken zijn niet betrouwbaar recht te trekken.');
+  }
+  return cofactors.map(value=>value/determinant);
+}
+
+function applyCardMatrix(matrix,p) {
+  const denominator=matrix[6]*p.x+matrix[7]*p.y+matrix[8];
+  if (!Number.isFinite(denominator) || Math.abs(denominator)<1e-10) {
+    throw geometryError('Het kaartvlak is te sterk vervormd om te meten.');
+  }
+  const result=point((matrix[0]*p.x+matrix[1]*p.y+matrix[2])/denominator,
+    (matrix[3]*p.x+matrix[4]*p.y+matrix[5])/denominator);
+  if (!Number.isFinite(result.x) || !Number.isFinite(result.y)) throw geometryError('Ongeldig kaartvlak.');
+  return result;
+}
+
+function cardPlaneFor(outer) {
+  validateMeasurementQuad(outer,'Buitenrand');
+  // Normalize image coordinates to avoid large translations degrading the inverse.
+  const origin=outer.TL;
+  const size=Math.max(...QUAD_KEYS.map(key=>Math.hypot(outer[key].x-origin.x,outer[key].y-origin.y)));
+  const q=QUAD_KEYS.map(key=>point((outer[key].x-origin.x)/size,(outer[key].y-origin.y)/size));
+  const [p0,p1,p2,p3]=q;
+  const dx1=p1.x-p2.x, dx2=p3.x-p2.x, dx3=p0.x-p1.x+p2.x-p3.x;
+  const dy1=p1.y-p2.y, dy2=p3.y-p2.y, dy3=p0.y-p1.y+p2.y-p3.y;
+  let g=0,h=0;
+  if (Math.abs(dx3)+Math.abs(dy3)>1e-12) {
+    const denominator=dx1*dy2-dx2*dy1;
+    if (Math.abs(denominator)<1e-12) throw geometryError('Buitenrand: onbetrouwbaar perspectief.');
+    g=(dx3*dy2-dx2*dy3)/denominator;
+    h=(dx1*dy3-dx3*dy1)/denominator;
+  }
+  const forward=[p1.x-p0.x+g*p1.x,p3.x-p0.x+h*p3.x,p0.x,
+    p1.y-p0.y+g*p1.y,p3.y-p0.y+h*p3.y,p0.y,g,h,1];
+  const inverse=invertCardMatrix(forward);
+  return {
+    toCard:function(p) {
+      const value=applyCardMatrix(inverse,point((p.x-origin.x)/size,(p.y-origin.y)/size));
+      return point(value.x*CARD_MM.width,value.y*CARD_MM.height);
+    },
+    toImage:function(p) {
+      const value=applyCardMatrix(forward,point(p.x/CARD_MM.width,p.y/CARD_MM.height));
+      return point(value.x*size+origin.x,value.y*size+origin.y);
+    }
+  };
 }
 
 function buildMeasurements(state) {
-  const activeState = state || cur;
-  const scale = physicalScale(activeState.outer);
-  const bySide = {L:[],R:[],T:[],B:[]};
-  for (const side of ['L','R','T','B']) {
-    const outerEdge = endpoints(activeState.outer,side);
-    SAMPLE_T.forEach(function(t,index) {
-      const innerPoint = sidePoint(activeState.inner,side,t);
-      let outerPoint;
-      let pixels;
-      if (side === 'L' || side === 'R') {
-        const x = lineXAtY(outerEdge[0],outerEdge[1],innerPoint.y);
-        outerPoint = point(x,innerPoint.y);
-        pixels = side === 'L' ? innerPoint.x-x : x-innerPoint.x;
-      } else {
-        const y = lineYAtX(outerEdge[0],outerEdge[1],innerPoint.x);
-        outerPoint = point(innerPoint.x,y);
-        pixels = side === 'T' ? innerPoint.y-y : y-innerPoint.y;
+  const activeState=state || cur;
+  const bySide={L:[],R:[],T:[],B:[]};
+  try {
+    const plane=cardPlaneFor(activeState.outer);
+    validateMeasurementQuad(activeState.inner,'Binnenrand');
+    const inner={};
+    for (const key of QUAD_KEYS) {
+      const p=plane.toCard(activeState.inner[key]);
+      const epsilon=1e-7;
+      if (p.x < -epsilon || p.x>CARD_MM.width+epsilon || p.y < -epsilon || p.y>CARD_MM.height+epsilon) {
+        throw geometryError('De binnenrand ligt buiten de fysieke kaart.');
       }
-      const safePixels = Math.max(0,pixels);
-      bySide[side].push({
-        id:side+(index+1),
-        side:side,
-        index:index+1,
-        t:t,
-        outer:outerPoint,
-        inner:innerPoint,
-        pixels:safePixels,
-        mm:safePixels/(side === 'L' || side === 'R' ? scale.x : scale.y)
+      // Only remove floating-point residue at a shared edge, not invalid margins.
+      inner[key]=point(Math.max(0,Math.min(CARD_MM.width,p.x)),Math.max(0,Math.min(CARD_MM.height,p.y)));
+    }
+    for (const side of ['L','R','T','B']) {
+      SAMPLE_T.forEach(function(t,index) {
+        const p=sidePoint(inner,side,t);
+        const outside=side==='L' ? point(0,p.y) : side==='R' ? point(CARD_MM.width,p.y)
+          : side==='T' ? point(p.x,0) : point(p.x,CARD_MM.height);
+        const mm=side==='L' ? p.x : side==='R' ? CARD_MM.width-p.x : side==='T' ? p.y : CARD_MM.height-p.y;
+        const sourceInner=plane.toImage(p), sourceOuter=plane.toImage(outside);
+        bySide[side].push({id:side+(index+1),side:side,index:index+1,t:t,
+          outer:sourceOuter,inner:sourceInner,pixels:Math.hypot(sourceInner.x-sourceOuter.x,sourceInner.y-sourceOuter.y),mm:mm});
       });
-    });
+    }
+    if (!ratioSummary(bySide.L,bySide.R).valid || !ratioSummary(bySide.T,bySide.B).valid) {
+      throw geometryError('Er is geen meetbare rand. Controleer de lijnen of kies Reference/template.');
+    }
+    return {valid:true,method:MEASUREMENT_METHOD,bySide:bySide};
+  } catch (error) {
+    if (error.code!=='INVALID_MEASUREMENT_GEOMETRY') throw error;
+    return {valid:false,method:MEASUREMENT_METHOD,error:error.message,bySide:{L:[],R:[],T:[],B:[]}};
   }
-  return {bySide:bySide,scale:scale};
 }
 
 function ratioSummary(firstSide,secondSide) {
-  const samples = firstSide.map(function(value,index) {
-    const total = value.mm + secondSide[index].mm;
-    const first = total > 0 ? value.mm/total*100 : 50;
+  const invalid={valid:false,samples:[],worst:null,spread:null};
+  if (!Array.isArray(firstSide) || !Array.isArray(secondSide) || !firstSide.length || firstSide.length!==secondSide.length) return invalid;
+  if (!firstSide.every(function(value,index) {
+    const other=secondSide[index];
+    return value && other && Number.isFinite(value.mm) && Number.isFinite(other.mm)
+      && value.mm>=0 && other.mm>=0 && Number.isFinite(value.mm+other.mm) && value.mm+other.mm>1e-9;
+  })) return invalid;
+  const samples=firstSide.map(function(value,index) {
+    const first=value.mm/(value.mm+secondSide[index].mm)*100;
     return {first:first,second:100-first,index:index,deviation:Math.abs(first-50)};
   });
-  const worst = samples.reduce(function(selected,value) {
-    return value.deviation > selected.deviation ? value : selected;
+  const worst=samples.reduce(function(selected,value) {
+    return value.deviation>selected.deviation ? value : selected;
   },samples[0]);
-  const low = Math.min.apply(null,samples.map(function(value) { return value.first; }));
-  const high = Math.max.apply(null,samples.map(function(value) { return value.first; }));
-  return {samples:samples,worst:worst,spread:(high-low)/2};
+  const low=Math.min(...samples.map(value=>value.first));
+  const high=Math.max(...samples.map(value=>value.first));
+  return {valid:true,samples:samples,worst:worst,spread:(high-low)/2};
+}
+
+function showMeasurementError(message) {
+  const warning=$('measurementWarning');
+  warning.textContent=message+' Pas de lijnen aan of kies een andere meetmodus.';
+  warning.hidden=false;
+  notifyHeight();
 }
 
 function clearMeasurements() {
@@ -404,7 +484,7 @@ function appendSvg(name,attributes,textValue) {
 
 function drawMeasurements(measurements) {
   clearMeasurements();
-  if (!showMeasurements || cur.mode !== 'inner_edge' || activeLayer === 'tilt') return;
+  if (!showMeasurements || cur.mode !== 'inner_edge' || activeLayer === 'tilt' || measurements.valid===false) return;
   for (const side of ['L','R','T','B']) {
     for (const item of measurements.bySide[side]) {
       appendSvg('line',{class:'measureSegment',x1:item.outer.x,y1:item.outer.y,x2:item.inner.x,y2:item.inner.y});
@@ -427,7 +507,7 @@ function drawMeasurements(measurements) {
 }
 
 function updateMeasurementTable(measurements) {
-  const canMeasure = cur.mode === 'inner_edge';
+  const canMeasure = cur.mode === 'inner_edge' && measurements.valid!==false;
   for (const side of ['L','R','T','B']) {
     for (let index=1; index<=3; index++) {
       $('m'+side+index).textContent = canMeasure ? formatMm(measurements.bySide[side][index-1].mm) : '—';
@@ -436,6 +516,7 @@ function updateMeasurementTable(measurements) {
   $('measureSource').textContent = cur.edits.outer || cur.edits.inner ? 'Gold-correctie' : 'AI-voorstel';
   $('studentBadge').innerHTML = canMeasure
     ? '<b>AI-student:</b> 24 zichtbare keypoints (12 buiten + 12 binnen). De slechtste P1/P2/P3-verhouding bepaalt de getoonde centering.'
+    : cur.mode==='inner_edge' ? '<b>Geen geldige meting.</b> Controleer eerst de meetlijnen.'
     : '<b>AI-student:</b> 12 fysieke buitenrand-keypoints. De binnenrand loopt bij dit kaarttype via reference/template.';
 }
 
@@ -451,13 +532,25 @@ function updateGeom() {
   setLevelGuides(cur.outer);
   const canInner = cur.mode === 'inner_edge';
   const measurements = canInner ? buildMeasurements(cur) : {bySide:{L:[],R:[],T:[],B:[]}};
-  if (canInner) {
+  let outerError=null;
+  try { cardPlaneFor(cur.outer); } catch (error) { if(error.code!=='INVALID_MEASUREMENT_GEOMETRY')throw error; outerError=error.message; }
+  const invalid=outerError || (canInner && !measurements.valid ? measurements.error : null);
+  $('measurementWarning').hidden=!invalid;
+  if(invalid)showMeasurementError(invalid);
+  $('save').disabled=Boolean(invalid);
+  $('export').disabled=Boolean(invalid);
+  if (canInner && !invalid) {
     const lr = ratioSummary(measurements.bySide.L,measurements.bySide.R);
     const tb = ratioSummary(measurements.bySide.T,measurements.bySide.B);
     $('lr').textContent = formatPct(lr.worst.first)+' / '+formatPct(lr.worst.second);
     $('tb').textContent = formatPct(tb.worst.first)+' / '+formatPct(tb.worst.second);
-    $('lrSpread').textContent = 'slechtste: P'+(lr.worst.index+1)+' · spreiding ±'+formatPct(lr.spread)+'%';
-    $('tbSpread').textContent = 'slechtste: P'+(tb.worst.index+1)+' · spreiding ±'+formatPct(tb.spread)+'%';
+    $('lrSpread').textContent = 'slechtste: P'+(lr.worst.index+1)+' · variatie ±'+formatPct(lr.spread)+' pp';
+    $('tbSpread').textContent = 'slechtste: P'+(tb.worst.index+1)+' · variatie ±'+formatPct(tb.spread)+' pp';
+  } else if (invalid) {
+    $('lr').textContent='—';
+    $('tb').textContent='—';
+    $('lrSpread').textContent='controleer meetlijnen';
+    $('tbSpread').textContent='geen geldige meting';
   } else {
     $('lr').textContent = 'reference';
     $('tb').textContent = 'reference';
@@ -676,12 +769,21 @@ function render() {
 }
 
 function persist(confirmed) {
+  let target;
+  try { target=buildStudentTarget(cur,ITEMS[idx]); }
+  catch (error) {
+    if(error.code!=='INVALID_MEASUREMENT_GEOMETRY')throw error;
+    showMeasurementError(error.message);
+    return false;
+  }
   cur.note=$('note').value;
   cur.mode=$('mode').value;
   if(confirmed)cur.confirmed=true;
-  cur.student_target=buildStudentTarget(cur,ITEMS[idx]);
+  target.source=cur.confirmed?'gold_user':'ai_seed';
+  cur.student_target=target;
   saved[cur.card_id]=cur;
   localStorage.setItem(KEY,JSON.stringify(saved));
+  return true;
 }
 
 function pos(event) {
@@ -738,6 +840,7 @@ function normalizedKeypoints(quad) {
 }
 
 function buildStudentTarget(state,item) {
+  cardPlaneFor(state.outer);
   const target={
     schema:'border-keypoints-v1',
     image_size:{width:WIDTH,height:HEIGHT},
@@ -751,6 +854,9 @@ function buildStudentTarget(state,item) {
       translation_px:{...(state.pan || panSeed())}
     },
     rule:'centerline_on_visual_transition',
+    measurement_method:MEASUREMENT_METHOD,
+    measurement_sample_space:'rectified_inner_edges',
+    keypoint_sample_space:'review_canvas',
     layout:item.layout,
     inner_geometry:item.inner_geometry,
     mode:state.mode,
@@ -762,6 +868,7 @@ function buildStudentTarget(state,item) {
   };
   if(state.mode==='inner_edge') {
     const measurements=buildMeasurements(state);
+    if(!measurements.valid)throw geometryError(measurements.error);
     const lr=ratioSummary(measurements.bySide.L,measurements.bySide.R);
     const tb=ratioSummary(measurements.bySide.T,measurements.bySide.B);
     target.measurements_mm={};
@@ -1016,32 +1123,33 @@ $('undo').onclick=function() {
 };
 
 $('save').onclick=function() {
-  persist(true);
+  if(!persist(true))return;
   idx=Math.min(ITEMS.length-1,idx+1);
   render();
 };
 
 $('skip').onclick=function() {
-  persist(false);
+  if(!persist(false))return;
   idx=Math.min(ITEMS.length-1,idx+1);
   render();
 };
 
 $('prev').onclick=function() {
-  persist(false);
+  if(!persist(false))return;
   idx=(idx-1+ITEMS.length)%ITEMS.length;
   render();
 };
 
 $('next').onclick=function() {
-  persist(false);
+  if(!persist(false))return;
   idx=(idx+1)%ITEMS.length;
   render();
 };
 
 $('export').onclick=function() {
-  persist(false);
-  const labels=Object.values(saved).map(function(label) {
+  if(!persist(false))return;
+  let labels;
+  try { labels=Object.values(saved).map(function(label) {
     const item=ITEMS.find(function(candidate) { return candidate.card_id===label.card_id; });
     const normalized=stateFor(item);
     return {
@@ -1052,12 +1160,18 @@ $('export').onclick=function() {
       pan_y:Number(normalized.pan ? normalized.pan.y : 0),
       student_target:buildStudentTarget(normalized,item)
     };
-  });
+  }); } catch(error) {
+    if(error.code!=='INVALID_MEASUREMENT_GEOMETRY')throw error;
+    showMeasurementError('Export gestopt: een opgeslagen beoordeling heeft ongeldige meetlijnen. '+error.message);
+    return;
+  }
   const payload={
     version:'centering-gold-v16',
     schema:'border-keypoints-v1',
     created:new Date().toISOString(),
     measurement_rule:'centerline_on_visual_transition',
+    measurement_method:MEASUREMENT_METHOD,
+    measurement_sample_space:'rectified_inner_edges',
     sample_positions:SAMPLE_T,
     labels:labels
   };
@@ -1081,7 +1195,7 @@ window.addEventListener('message',function(event) {
   if(event.data?.type!=='review-select-card')return;
   const nextIndex=ITEMS.findIndex(function(item) { return item.card_id===event.data.cardId; });
   if(nextIndex<0||nextIndex===idx)return;
-  persist(false);
+  if(!persist(false))return;
   idx=nextIndex;
   render();
   window.scrollTo({top:0,behavior:'auto'});

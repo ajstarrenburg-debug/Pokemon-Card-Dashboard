@@ -1,6 +1,8 @@
 name: Browser compatibility check
 
 on:
+  pull_request:
+    branches: [main]
   push:
     branches: [main, fix/review-v16-safe-crops]
     paths:
@@ -15,6 +17,9 @@ on:
       - 'tools/build_review_assets.py'
       - 'tools/audit_review_assets.py'
       - 'tests/review-state.mjs'
+      - 'tests/centering-geometry.mjs'
+      - 'tests/centering-geometry-browser.mjs'
+      - 'tests/fixtures/centering-geometry.json'
       - 'package.json'
       - 'package-lock.json'
       - '.github/workflows/browser-compat.yml'
@@ -44,6 +49,7 @@ jobs:
           npm ci
           npm run test:student
           npm run test:state
+          npm run test:geometry
           npm run build
 
       - name: Install browser engines
@@ -58,6 +64,9 @@ jobs:
 
       - name: Test Chromium Firefox and WebKit
         run: node tests/browser-compat.mjs
+
+      - name: Test perspective and invalid geometry in three browsers
+        run: npm run test:geometry:browser
 
       - name: Upload browser screenshots
         if: always()

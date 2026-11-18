@@ -37,3 +37,33 @@ Development dashboard for Pokemon card scan QA, centering and AI-assisted inner-
 - subtle dashed viewing guides with unchanged 1 px measurement cores and large invisible drag targets
 
 The repository contains the webapp/development assets only. Original high-resolution collection scans are intentionally not stored here.
+
+
+## Perspective-correct measurements
+
+Measurements use an outer-card-plane homography derived only from the four physical
+card corners. The same transform is applied to the inner print frame. The original
+image and annotation corners remain unchanged; the visible white measurement
+segments are mapped back onto the original image. This assumes a flat rectangular
+card; it does not correct lens distortion or curved cards.
+
+P1/P2/P3 for millimeter measurements are sampled at 25%, 50%, and 75% along each
+rectified inner edge. The worst of these three pairs is reported. Their half-range
+is variation between samples, not a statistical uncertainty interval.
+
+Invalid, crossed, collapsed or out-of-card geometry produces no percentage.
+Confirmation, navigation that saves, and export stop until the geometry is repaired
+or an appropriate non-inner measurement mode is chosen. Invalid geometry in an
+older saved record also blocks export; no records are silently omitted.
+
+Gold corner coordinates, image revisions and existing review-canvas keypoint
+conventions are preserved. Derived millimeters and ratios are recomputed on save
+or export and can change for previously skewed labels. New targets carry
+`measurement_method: outer-card-plane-v1`,
+`measurement_sample_space: rectified_inner_edges`, and
+`keypoint_sample_space: review_canvas` to distinguish those conventions. Existing
+exports and the training builder remain compatible; old exports are not rewritten.
+
+Run `npm run test:geometry` for the 20 fixed coordinate cases plus general projective
+transforms, preservation of tilted print, invalid data and the no-storage-write guard.
+The fixtures contain only fictional coordinates, not scans or personal Gold data.

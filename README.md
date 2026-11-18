@@ -105,7 +105,7 @@ from ordinary positive geometry training.
 
 - `npm run test:geometry`: 20 independent coordinate cases plus projective/invalid cases.
 - `npm run test:state`: confirmed labels and image-revision migration preservation.
-- `npm run test:reliability`: 18 real-source flow checks, with isolated synthetic storage.
+- `npm run test:reliability`: 19 real-source flow checks, with isolated synthetic storage.
 - `npm run test:student`: dataset conversion self-test.
 - GitHub Actions runs existing compatibility, geometry, reliability and recovery
   checks in Chromium, Firefox and WebKit, including 1440px and 390px layouts.

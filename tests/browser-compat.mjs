@@ -395,11 +395,11 @@ for (const [name,engine] of Object.entries(engines)) {
       }
     }
     const reshiram=v15State['A-B01-P5'];
-    assert(reshiram.asset_revision===16&&reshiram.seed_revision===16&&!reshiram.confirmed&&reshiram.tilt===0&&reshiram.pan.x===0&&reshiram.outer.TL.x===105,'Reshiram kept stale crop coordinates');
+    assert(reshiram.asset_revision===15&&reshiram.seed_revision===13&&!reshiram.confirmed&&reshiram.tilt===-0.7&&JSON.stringify(reshiram.outer)===JSON.stringify(v15Fixture['A-B01-P5'].outer),'Reshiram lost manual geometry or original image revision');
     assert(laterImage==='cards/v15/A-B05-P4.jpg?v=16','later confirmation lost its original image');
     const oldBackup=await v15Page.evaluate(()=>JSON.parse(localStorage.getItem('pokemon_centering_gold_v15')));
     assert(JSON.stringify(oldBackup)===JSON.stringify(v15Fixture),'v15 backup was overwritten');
-    result.v15Migration={preserved:9,reshiramReset:true,legacyImageRetained:true,backupIntact:true};
+    result.v15Migration={preserved:10,reshiramManualPreserved:true,legacyImageRetained:true,backupIntact:true};
     await v15Context.close();
 
     assert(result.navigation.disabledCount===10&&result.navigation.allDisabledLabeled&&result.navigation.enabledDeadButtons===0,'unfinished navigation is still presented as functional');

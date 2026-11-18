@@ -177,7 +177,8 @@ function stateFor(item) {
       && REVIEWED_PROPOSALS[item.card_id]
       && Number(existing.proposal_revision||0)<REVIEWED_PROPOSALS[item.card_id].revision;
     const resetForNewAsset = !Boolean(existing.confirmed)
-      && Number(item.seed_revision || 0) > Number(existing.seed_revision || 0);
+      && Number(item.seed_revision || 0) > Number(existing.seed_revision || 0)
+      && untouchedProposal(item,existing);
     const updateUnconfirmedMode = !Boolean(existing.confirmed)
       && Number(item.mode_revision || 14) > Number(existing.mode_revision || 14);
     const legacyInner = existing.inner || existing.box;

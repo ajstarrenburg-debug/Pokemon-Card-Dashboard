@@ -29,7 +29,7 @@ Development dashboard for Pokemon card scan QA, centering and AI-assisted inner-
 - Misty's Lapras uses a complete padded crop and a real illustration-border inner edge
 - card layout and measurement mode are independent; every visible border/print transition enables the inner-edge tool
 - v0.14/v0.15 progress migrates without altering confirmed geometry, tilt, notes or keypoints
-- eight unconfirmed cards use wider aspect-preserving source crops; N's Reshiram uses the correct source position
+- eight untouched proposals use wider aspect-preserving source crops; N's Reshiram uses the correct source position
 - confirmed image revisions remain available so later confirmations cannot attach to changed pixels
 - source-to-asset audit and migration checks protect existing Gold work
 - student datasets retain image revision, rotation pivot and pan alongside review-canvas targets

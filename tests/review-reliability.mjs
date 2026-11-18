@@ -26,6 +26,8 @@ test('changed Gold becomes draft with original archived',()=>{
   assert.equal(state.confirmed,false);assert.equal(state.student_target.source,'ai_seed');
   assert.deepEqual(state.confirmation_history[0].inner,old.inner);
   assert.equal(state.confirmation_history[0].confirmed,true);
+  const b=boot();b.run('persist(true);updateWarning(ITEMS[0])');b.el('nudgeIn').onclick();
+  assert(!b.el('warning').innerHTML.includes('Bevestigde meting.'));
 });
 test('reset cannot turn proposals into Gold',()=>{
   const a=boot();a.run('persist(true)');a.el('reset').onclick();a.runTimers();

@@ -22,6 +22,7 @@ for(const [name,engine] of Object.entries({chromium,firefox,webkit})){
       assert((await frame.locator('#warning').textContent()).includes('Bevestigde meting.'));
       await frame.locator('#showOuter').click();await frame.locator('#nudgeIn').click();
       await page.waitForFunction(()=>JSON.parse(localStorage.getItem('pokemon_centering_gold_v16'))?.['A-B03-P5']?.confirmed===false);
+      assert(!(await frame.locator('#warning').textContent()).includes('Bevestigde meting.'));
       const stored=await page.evaluate(()=>JSON.parse(localStorage.getItem('pokemon_centering_gold_v16'))['A-B03-P5']);
       assert.equal(stored.student_target.source,'ai_seed');assert.equal(stored.confirmation_history[0].confirmed,true);
       assert.equal(['TL','TR','BR','BL'].map(k=>`${stored.confirmation_history[0].outer[k].x},${stored.confirmation_history[0].outer[k].y}`).join(' '),original);

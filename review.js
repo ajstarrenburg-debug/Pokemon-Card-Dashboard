@@ -843,7 +843,7 @@ function nudgeSelected(direction) {
   const amount=Number($('nudgeStep').value||1)*direction;
   for(const p of edge){p.x+=sign*dy/length*amount;p.y-=sign*dx/length*amount;}
   clampQuad(quad);cur.edits[layer]=true;
-  focusSide(layer,key);updateGeom();scheduleSave();
+  focusSide(layer,key);finishEdit();
 }
 
 function loadCardImage(item) {

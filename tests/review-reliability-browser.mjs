@@ -40,11 +40,11 @@ for(const [name,engine] of Object.entries({chromium,firefox,webkit})){
       await page.waitForTimeout(300);
       const height=await page.locator('#reviewFrame').evaluate(el=>({outer:el.clientHeight,inner:el.contentDocument.documentElement.scrollHeight}));
       assert(height.inner<=height.outer+2,`${name} ${width}: iframe clips lower controls (${JSON.stringify(height)})`);
-      for(const id of ['alignmentDetails','measurementDetails']){
-        await frame.locator('#'+id+' summary').click();
+      for(const selector of ['#alignmentDetails','.measurementDetails']){
+        await frame.locator(selector+' summary').click();
         await page.waitForFunction(()=>{const f=document.querySelector('#reviewFrame');return f.contentDocument.documentElement.scrollHeight<=f.clientHeight+2;});
       }
-      for(const id of ['alignmentDetails','measurementDetails'])await frame.locator('#'+id+' summary').click();
+      for(const selector of ['#alignmentDetails','.measurementDetails'])await frame.locator(selector+' summary').click();
       await page.screenshot({path:`browser-${name}-reliable-gengar-${width}.png`,fullPage:true});
       assert.deepEqual(errors,[]);
       await context.close();

@@ -885,12 +885,15 @@ function updateWarning(item) {
     $('warning').innerHTML='<div class="warn"><b>Niet betrouwbaar meetbaar.</b> Sla deze kaart over en bewaar de reden in de notitie.</div>';
   } else if (cur.mode==='reference_required') {
     $('warning').innerHTML='<div class="warn"><b>Reference/template gekozen.</b> De magenta laag en punten zijn uitgeschakeld. Gebruik dit alleen als er geen consistente printovergang te plaatsen is.</div>';
+  } else if (item.seed_revision === 16 && cur.asset_revision < 16) {
+    $('warning').innerHTML='<div class="warn"><b>Oorspronkelijke afbeelding behouden.</b> Je handmatige of bevestigde meting blijft gekoppeld aan de oorspronkelijke foto. Nieuwe startvoorstellen voor een andere uitsnede vervangen dit werk niet.</div>';
+  } else if (isConfirmed(cur)) {
+    $('warning').innerHTML='<div class="ok"><b>Bevestigde meting.</b> Deze geometrie is door jou gecontroleerd en opgeslagen. Een rand- of beeldcorrectie maakt er weer een concept van.</div>';
   } else if (item.semantic_warning) {
     $('warning').innerHTML='<div class="warn"><b>AI-voorstel onbetrouwbaar.</b> De detector volgt hier mogelijk een interne grafische lijn. Plaats de magenta kern daarom handmatig op de overgang border → binnenste printvlak.</div>';
   } else if (REVIEWED_PROPOSALS[item.card_id] && !isConfirmed(cur)) {
     $('warning').innerHTML='<div class="warn">Startlijnen op deze afbeelding nagekeken. Controleer zelf de fysieke kaart en de printgrens; dit is nog geen bevestigde meting.</div>';
-  } else if (item.seed_revision === 16 && cur.asset_revision < 16) {
-    $('warning').innerHTML='<div class="warn"><b>Eerdere bevestiging behouden.</b> Je meting staat bij de oorspronkelijke afbeelding. De nieuwe uitsnede is alleen voor nog onbevestigde kaarten.</div>';
+
   } else if (item.seed_revision === 16 && !cur.confirmed) {
     $('warning').innerHTML='<div class="warn">Ruimere uitsnede beschikbaar. De lijnen zijn startvoorstellen: controleer de fysieke kaartrand en de printovergang voordat je bevestigt.</div>';
   } else {
@@ -1384,5 +1387,11 @@ function downloadJson(payload,filename){
 window.addEventListener('pagehide',function(){if(hasUnsavedChanges)persist(false);});
 window.addEventListener('beforeunload',function(){if(hasUnsavedChanges)persist(false);});
 window.addEventListener('resize',notifyHeight);
+for (const details of document.querySelectorAll('details')) details.addEventListener('toggle',notifyHeight);
+if (typeof ResizeObserver !== 'undefined') {
+  const layoutObserver=new ResizeObserver(notifyHeight);
+  layoutObserver.observe(document.querySelector('main'));
+  layoutObserver.observe(document.querySelector('header'));
+}
 
 render();

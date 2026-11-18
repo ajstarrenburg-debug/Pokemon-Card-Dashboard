@@ -19,6 +19,7 @@ for(const [name,engine] of Object.entries({chromium,firefox,webkit})){
       await frame.locator('#save').click();
       await page.waitForFunction(()=>JSON.parse(localStorage.getItem('pokemon_centering_gold_v16'))?.['A-B03-P5']?.confirmed===true);
       await frame.locator('#prev').click();
+      assert((await frame.locator('#warning').textContent()).includes('Bevestigde meting.'));
       await frame.locator('#showOuter').click();await frame.locator('#nudgeIn').click();
       await page.waitForFunction(()=>JSON.parse(localStorage.getItem('pokemon_centering_gold_v16'))?.['A-B03-P5']?.confirmed===false);
       const stored=await page.evaluate(()=>JSON.parse(localStorage.getItem('pokemon_centering_gold_v16'))['A-B03-P5']);
@@ -38,6 +39,11 @@ for(const [name,engine] of Object.entries({chromium,firefox,webkit})){
       await page.waitForTimeout(300);
       const height=await page.locator('#reviewFrame').evaluate(el=>({outer:el.clientHeight,inner:el.contentDocument.documentElement.scrollHeight}));
       assert(height.inner<=height.outer+2,`${name} ${width}: iframe clips lower controls (${JSON.stringify(height)})`);
+      for(const id of ['alignmentDetails','measurementDetails']){
+        await frame.locator('#'+id+' summary').click();
+        await page.waitForFunction(()=>{const f=document.querySelector('#reviewFrame');return f.contentDocument.documentElement.scrollHeight<=f.clientHeight+2;});
+      }
+      for(const id of ['alignmentDetails','measurementDetails'])await frame.locator('#'+id+' summary').click();
       await page.screenshot({path:`browser-${name}-reliable-gengar-${width}.png`,fullPage:true});
       assert.deepEqual(errors,[]);
       await context.close();

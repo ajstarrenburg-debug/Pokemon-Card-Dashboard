@@ -21,7 +21,7 @@ test('loaded-image gate',()=>{
   a.el('img').onerror();assert.equal(a.run('persist(true)'),false);
 });
 test('changed Gold becomes draft with original archived',()=>{
-  const a=boot();assert.equal(a.run('persist(true)'),true);const old=exported(a);
+  const a=boot();assert.equal(a.run('persist(true)'),true);const old=exported(a);a.run('updateWarning(ITEMS[0])');assert(a.el('warning').innerHTML.includes('Bevestigde meting.'));
   drag(a,'inner','L',2,0);const state=exported(a);
   assert.equal(state.confirmed,false);assert.equal(state.student_target.source,'ai_seed');
   assert.deepEqual(state.confirmation_history[0].inner,old.inner);

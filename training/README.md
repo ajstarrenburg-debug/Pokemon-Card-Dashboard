@@ -56,3 +56,17 @@ Private Gold exports and source scans must not be committed to this public repos
 [OpenCV's feature matching and homography tutorial](https://docs.opencv.org/4.x/d1/de0/tutorial_py_feature_homography.html)
 documents the reference-to-scan matching mechanism. Reference artwork can help locate
 the print; it cannot establish how centered an individual physical card was cut.
+
+## Measurement protocol revision
+
+The v0.16.1 review exports `outer-card-plane-v2`: opposite borders share common
+rectified cross sections. Original `outer_keypoints`/`inner_keypoints` are preserved
+in review-canvas space. Actual distance endpoints have their own `measurement_points`
+series and `measurement_domains`; they must not be interpreted as those same
+training keypoints. Filter on the declared method when training a derived-value
+head. A raw recovery backup (`backup_only: true`) is rejected as training input.
+
+Confirmed annotations reset to draft after geometry, mode or registration changes.
+Unmeasurable records are excluded, rather than used as positive outer-edge truth.
+The builder checks unique point IDs, bounds, three finite nonnegative distances per
+side, ratio sums/ranges, and consistency between distances and reported ratios.

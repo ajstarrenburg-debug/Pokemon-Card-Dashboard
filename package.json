@@ -1,14 +1,18 @@
 {
   "name": "pokemon-card-dashboard",
   "private": true,
-  "version": "0.16.0",
+  "version": "0.16.1",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
     "test:student": "node tools/build_student_dataset.mjs --self-test",
     "test:state": "node tests/review-state.mjs",
-    "student:prepare": "node tools/build_student_dataset.mjs"
+    "student:prepare": "node tools/build_student_dataset.mjs",
+    "test:geometry": "node tests/centering-geometry.mjs",
+    "test:geometry:browser": "node tests/centering-geometry-browser.mjs",
+    "test:reliability": "node tests/review-reliability.mjs",
+    "test:reliability:browser": "node tests/review-reliability-browser.mjs"
   },
   "devDependencies": {
     "vite": "7.1.3"

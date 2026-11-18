@@ -34,22 +34,23 @@ let preserved=0,reset=0;
 for (const {state,path} of migrated) {
   const before=input[state.card_id];
   if (!before) continue;
-  if (before.confirmed) {
-    for (const field of ['outer','inner','tilt','tilt_ai','pivot','pan','note','edits','confirmed','seed_revision']) {
-      if (before[field] !== undefined) assert.deepEqual(state[field],before[field],`${state.card_id}: ${field} changed`);
-    }
-    preserved++;
-  } else if (defaults.find(row=>row.state.card_id===state.card_id).state.seed_revision===16) {
-    const expected=defaults.find(row=>row.state.card_id===state.card_id).state;
-    for (const field of ['outer','inner','tilt','pivot','pan','edits','confirmed','asset_revision']) {
-      assert.deepEqual(state[field],expected[field],`${state.card_id}: stale ${field}`);
-    }
-    assert.equal(state.note,before.note);
-    assert.equal(path,`cards/${state.card_id}.jpg`);
-    reset++;
+  for (const field of ['outer','inner','tilt','tilt_ai','pivot','pan','note','edits','confirmed','seed_revision']) {
+    if (before[field] !== undefined) assert.deepEqual(state[field],before[field],`${state.card_id}: ${field} changed`);
+  }
+  preserved++;
+  if (defaults.find(row=>row.state.card_id===state.card_id).state.seed_revision===16) {
+    assert.equal(path,`cards/v15/${state.card_id}.jpg`);
   }
 }
-assert(preserved>0 && reset>0,'expected confirmed and unconfirmed cases');
+assert(preserved>0,'expected preserved manual cases');
+const untouched=Object.fromEntries(defaults.map(({state})=>[state.card_id,{
+  ...state,seed_revision:13,asset_revision:15,confirmed:false,edits:{outer:false,inner:false,tilt:false}
+}]));
+for(const {state,path} of load(untouched)){
+  if(defaults.find(row=>row.state.card_id===state.card_id).state.seed_revision!==16)continue;
+  assert.equal(state.asset_revision,16);assert.equal(path,`cards/${state.card_id}.jpg`);reset++;
+}
+assert.equal(reset,8);
 // A user may have confirmed a ninth card since their last uploaded backup.
 old['A-B01-P5'].confirmed=true;
 const later=load(old).find(row=>row.state.card_id==='A-B01-P5');
@@ -58,4 +59,4 @@ assert.deepEqual(later.state.outer,old['A-B01-P5'].outer);
 assert.equal(later.state.tilt,old['A-B01-P5'].tilt);
 assert.equal(later.state.confirmed,true);
 assert.deepEqual(load(Object.fromEntries(migrated.map(row=>[row.state.card_id,row.state]))),migrated,'migration must be idempotent');
-console.log(`STATE_MIGRATION_OK ${preserved} confirmed preserved, ${reset} open recrops reset, later confirmations keep original pixels`);
+console.log(`STATE_MIGRATION_OK ${preserved} confirmed/manual preserved, ${reset} open recrops reset, later confirmations keep original pixels`);
